@@ -1,0 +1,38 @@
+import Store from './store';
+
+export const dynamic = 'force-dynamic';
+
+async function getApi(path, params) {
+  const url = new URL(path, process.env.API_ORIGIN || 'http://localhost:4000');
+  if (params) url.search = params.toString();
+  const response = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(6000) });
+  if (!response.ok) throw new Error('Marketplace unavailable');
+  return response.json();
+}
+
+export default async function Page({ searchParams }) {
+  try {
+    const [{ location }, marketplace] = await Promise.all([
+      searchParams, getApi('/v1/marketplace'),
+    ]);
+    const current = marketplace.locations.find(area => area.id === location)?.id || '';
+    const params = new URLSearchParams();
+    if (current) params.set('location', current);
+    const { products } = await getApi('/v1/products', params);
+    return <>
+      {marketplace.locations.length > 0 && <form className="location-form" action="/">
+        <label htmlFor="location">Delivery location</label>
+        <select id="location" name="location" defaultValue={current}>
+          <option value="">Browse all locations</option>
+          {marketplace.locations.map(area => <option key={area.id} value={area.id}>
+            {area.city} / {area.town} / {area.name}
+          </option>)}
+        </select>
+        <button type="submit">Update location</button>
+      </form>}
+      <Store key={current} products={products} locationSelected={Boolean(current)} />
+    </>;
+  } catch {
+    return <main><h1>Flickit</h1><p>We couldn’t load the catalogue.</p><a href="/">Try again</a></main>;
+  }
+}

@@ -1,0 +1,28 @@
+* { box-sizing: border-box; }
+body { margin: 0; background: #f7f7f1; color: #162820; font: 16px system-ui, sans-serif; }
+header { display: flex; justify-content: space-between; align-items: center; padding: 10px max(5vw, calc((100vw - 1080px) / 2)); background: #fff9f1; color: #382537; font-weight: 700; }
+a { color: inherit; }
+main { width: min(1080px, 92%); margin: 28px auto 60px; }
+.hero { background: #dfead4; border-radius: 24px; padding: clamp(20px, 6vw, 56px); }
+.hero p { margin: 0; }
+h1 { font-size: clamp(2rem, 6vw, 4rem); margin: .15em 0 .35em; letter-spacing: -.055em; }
+input { width: min(100%, 460px); padding: 14px; border: 1px solid #64796a; border-radius: 12px; font: inherit; }
+nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 24px 0; }
+button { background: white; color: #183d30; border: 1px solid #64796a; padding: 8px 12px; min-height: 42px; border-radius: 9px; font: inherit; cursor: pointer; }
+button[aria-pressed=true] { background: #183d30; color: white; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 12px; }
+article, #bag { padding: 14px; border-radius: 16px; background: white; }
+article h2 { font-size: 1rem; margin: 12px 0 4px; }
+article p { margin: 0 0 10px; color: #4e6255; }
+.icon { padding: 16px; background: #edf2e8; border-radius: 12px; text-align: center; font-size: 36px; }
+.row { display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+#bag { margin-top: 24px; }
+#bag ul { padding: 0; }
+#bag li { padding: 6px 0; }
+
+.brand { display: inline-flex; }
+.brand img { display: block; width: clamp(120px, 24vw, 156px); height: auto; }
+
+.location-form { width: min(1080px, 92%); margin: 12px auto; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.filters { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+select { max-width: 100%; padding: 8px; min-height: 42px; background: white; color: inherit; border: 1px solid #64796a; border-radius: 9px; font: inherit; }

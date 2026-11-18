@@ -1,0 +1,1 @@
+{"name":"dimapur-quick-commerce","private":true,"type":"module","workspaces":["api","web"],"engines":{"node":">=22"}}

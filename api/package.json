@@ -1,0 +1,1 @@
+{"name":"@dimapur/api","private":true,"type":"module","scripts":{"dev":"node --env-file-if-exists=.env --watch server.js","start":"node --env-file-if-exists=.env server.js","seed":"node --env-file-if-exists=.env seed.js"},"dependencies":{"mongodb":"^6.21.0"}}

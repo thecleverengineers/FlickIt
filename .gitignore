@@ -1,0 +1,8 @@
+node_modules/
+.next/
+.env*
+!.env.example
+.dart_tool/
+.flutter-plugins*
+build/
+local.properties
