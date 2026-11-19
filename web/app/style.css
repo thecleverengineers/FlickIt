@@ -91,3 +91,7 @@ select { max-width: 100%; padding: 8px; min-height: 42px; background: white; col
   .shopping-dock a:last-child { background: var(--gradient); color: white; border-radius: 999px; }
   .store #bag { scroll-margin-bottom: 90px; }
 }
+
+.catalogue-status { padding: 16px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); }
+.catalogue-status p { margin: 0; }
+.catalogue-status button { margin-top: 12px; }

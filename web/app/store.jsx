@@ -2,13 +2,14 @@
 
 import { useState } from 'react';
 import Checkout from './checkout';
+import CatalogueStatus from './catalogue-status';
 
 const currency = new Intl.NumberFormat('en-IN', { currency: 'INR', style: 'currency' });
 const icons = { Produce: '🥬', Dairy: '🥛', Pantry: '🌾' };
 const productIcons = { banana: '🍌', tomato: '🍅', milk: '🥛', curd: '🥣', rice: '🍚', dal: '🫘' };
 const price = paise => currency.format(paise / 100);
 
-export default function Store({ products, locations, locationId, checkoutAvailable }) {
+export default function Store({ products, locations, locationId, checkoutAvailable, catalogueState }) {
   const [receipt, setReceipt] = useState(null);
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('All');
@@ -50,7 +51,7 @@ export default function Store({ products, locations, locationId, checkoutAvailab
       <div className="store-search">
         <span aria-hidden="true">⌕</span>
         <input type="search" aria-label="Search groceries" placeholder="Search groceries"
-          value={query} onChange={event => setQuery(event.target.value)} />
+          disabled={Boolean(catalogueState)} value={query} onChange={event => setQuery(event.target.value)} />
       </div>
       <section className="hero">
         <div><p>Flickit Grocery</p><h1>Everyday groceries,<br />delivered.</h1>
@@ -59,6 +60,7 @@ export default function Store({ products, locations, locationId, checkoutAvailab
       </section>
       <section id="browse" aria-labelledby="browse-title">
       <h2 id="browse-title">Shop by category</h2>
+      {catalogueState ? <CatalogueStatus state={catalogueState} /> : <>
       <nav className="category-nav" aria-label="Product categories">{categories.map(item =>
         <button key={item} aria-pressed={category === item} onClick={() => setCategory(item)}>
           <span aria-hidden="true">{icons[item] || '🛒'}</span>{item}</button>
@@ -87,7 +89,8 @@ export default function Store({ products, locations, locationId, checkoutAvailab
             <button aria-label={`Add ${product.name}`} className="add-product" onClick={() => change(product.id, 1)}>{bag[product.id] ? `+ · ${bag[product.id]}` : 'Add +'}</button></div>
         </article>)}
       </section>
-      {visible.length === 0 && <p>No groceries match your search.</p>}
+      {visible.length === 0 && <p>{products.length ? 'No groceries match your search.' : 'No groceries are available here yet.'}</p>}
+      </>}
       </section>
       <section id="bag"><h2>Your bag</h2>
         {receipt && <p role="status">Order confirmed. Reference <strong>{receipt.reference}</strong>.
