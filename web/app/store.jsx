@@ -228,24 +228,48 @@ export default function Store({ products, locations, locationId, checkoutAvailab
       </>}
       </section>
       </>}
-      {bagPage && <section id="bag"><h1>Your bag</h1>
-        <a href={`${homeHref}#browse`}>Continue shopping</a>
-        {receipt && <p role="status">Order confirmed. Reference <strong>{receipt.reference}</strong>.
+      {bagPage && <section className="bag-page" aria-labelledby="bag-title">
+        <header className="bag-heading">
+          <a className="bag-back" href={`${homeHref}#browse`}>← Continue shopping</a>
+          <h1 id="bag-title">Your bag</h1>
+          {bagLoaded && count > 0 && <p>{count} {count === 1 ? 'item' : 'items'}</p>}
+        </header>
+        {receipt && <p className="bag-panel" role="status">Order confirmed. Reference <strong>{receipt.reference}</strong>.
           Pay {price(receipt.totalPaise)} on delivery.</p>}
         {catalogueState ? <CatalogueStatus state={catalogueState} /> :
           !bagLoaded ? <p role="status">Loading your bag…</p> :
-          count === 0 ? <p>Your bag is empty.</p> : <>
-          <ul>{selected.map(product => <li className="row" key={product.id}>
-            <span>{product.name} × {bag[product.id]}</span>
-            <button aria-label={`Remove one ${product.name}`} onClick={() => change(product.id, -1)}>Remove one</button>
-          </li>)}</ul>
-          {unavailable.length > 0 && <ul>{unavailable.map(id => <li className="row" key={id}>
-            <span>Item unavailable for this delivery area</span>
-            <button onClick={() => change(id, -bag[id])}>Remove unavailable item</button>
-          </li>)}</ul>}
-          <strong>Subtotal {price(total)}</strong>
+          count === 0 ? <div className="bag-panel bag-empty">
+            <span className="bag-empty-icon"><Icon name="bag" /></span>
+            <h2>Your bag is empty</h2>
+            <a className="bag-shop" href={`${homeHref}#browse`}>Browse groceries</a>
+          </div> : <div className="bag-layout">
+          <ul className="bag-panel bag-items" aria-label="Bag items">
+            {selected.map(product => <li className="bag-item" key={product.id}>
+              <span className="bag-photo">{product.imageUrl
+                ? <img src={product.imageUrl} alt="" width="72" height="72" loading="lazy" />
+                : <Icon name="bag" />}</span>
+              <div className="bag-item-info">
+                <h2>{product.name}</h2>
+                {product.pack && <p>{product.pack}</p>}
+                <strong>{price(product.pricePaise * bag[product.id])}</strong>
+              </div>
+              <div className="bag-stepper" role="group" aria-label={`Quantity for ${product.name}`}>
+                <button type="button" aria-label={`Remove one ${product.name}`} onClick={() => change(product.id, -1)}>−</button>
+                <output aria-label="Quantity">{bag[product.id]}</output>
+                <button type="button" aria-label={`Add one ${product.name}`} disabled={bag[product.id] >= 99}
+                  onClick={() => change(product.id, 1)}>+</button>
+              </div>
+            </li>)}
+            {unavailable.map(id => <li className="bag-unavailable" key={id}>
+              <span>Item unavailable for this delivery area</span>
+              <button type="button" onClick={() => change(id, -bag[id])}>Remove</button>
+            </li>)}
+          </ul>
+          <section className="bag-panel bag-summary" aria-labelledby="bag-summary-title">
+          <h2 id="bag-summary-title">Order summary</h2>
+          <div className="bag-subtotal"><span>Subtotal</span><strong>{price(total)}</strong></div>
           {unavailable.length > 0 ? <p>Remove unavailable items to check out.</p> : !checkoutAvailable ? <p>Checkout is currently unavailable.</p> : !locationId
-            ? <p>Choose your delivery location to check out.</p>
+            ? <p><a href={homeHref}>Choose a delivery location</a> to check out.</p>
             : <Checkout locationId={locationId} selected={selected} bag={bag} totalPaise={total}
                 onOrder={order => {
                   const items = order.items.map(({ id, quantity }) => ({ id, quantity }));
@@ -256,7 +280,8 @@ export default function Store({ products, locations, locationId, checkoutAvailab
                   setReceipt(order);
                   setBag({});
                 }} />}
-        </>}
+          </section>
+        </div>}
       </section>}
     </main>
     <nav className="bottom-appbar" aria-label="Shopping shortcuts">
