@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Checkout from './checkout';
 import StoreHeader, { Icon } from './store-header';
 import CatalogueStatus from './catalogue-status';
+import CategoryIcon from './category-icon';
 import VoiceSearch from './voice-search';
 
 const currency = new Intl.NumberFormat('en-IN', { currency: 'INR', style: 'currency' });
@@ -164,8 +165,8 @@ export default function Store({ products, locations, locationId, checkoutAvailab
         }} />
       </div>
       {!catalogueState && <nav className="quick-categories" aria-label="Quick categories">
-        {categories.map(item => <button type="button" key={item} onClick={() => browseCategory(item)}>
-          <span aria-hidden="true">{icons[item] || '🛒'}</span>{item}
+        {categories.map(item => <button type="button" key={item} aria-pressed={category === item} onClick={() => browseCategory(item)}>
+          <CategoryIcon name={item} /><span className="quick-category-label">{item}</span>
         </button>)}
       </nav>}
       {showOffers && <section className="hero">
