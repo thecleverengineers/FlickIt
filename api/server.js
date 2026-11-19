@@ -2,7 +2,6 @@ import { createServer } from 'node:http';
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { customerAuth, findCustomerSession } from './customer-auth.js';
 import { OrderError, parseOrder, placeOrder } from './orders.js';
-import { importStarterCatalogue } from './starter-catalogue.js';
 import { sampleProducts } from './catalogue.js';
 import { client, database } from './database.js';
 import { demoMarketplace, getCatalogue, validateMarketplace } from './marketplace.js';
@@ -49,10 +48,10 @@ if (process.env.FLICKIT_REQUIRE_DATABASE === 'true') {
       database.collection('orders').createIndex({ customerMobile: 1, createdAt: -1 }),
       database.collection('orders').createIndex({ createdAt: -1 }),
     ]);
-    if (process.env.FLICKIT_IMPORT_STARTER_CATALOGUE === 'true') {
-      await database.collection('products').createIndex({ id: 1 }, { unique: true });
-      await importStarterCatalogue(database);
-    }
+    await database.collection('products').updateMany(
+      { active: true, preview: true },
+      { $set: { active: false } },
+    );
   } catch (error) {
     console.error('Flickit cannot reach MongoDB at startup.', error.name);
     await client.close();
@@ -167,7 +166,7 @@ createServer(async (request, response) => {
       ['id', 'name', 'category', 'pack', 'pricePaise', 'preview'].map(field => [field, 1])
     );
     const products = database
-      ? await database.collection('products').find({ active: true }, { projection: { ...projection, _id: 0 } })
+      ? await database.collection('products').find({ active: true, preview: { $ne: true } }, { projection: { ...projection, _id: 0 } })
         .sort({ name: 1, id: 1 }).limit(200).toArray()
       : sampleProducts;
     return send(response, 200, { products });
