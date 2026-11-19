@@ -78,6 +78,11 @@ export default function Store({ products, locations, locationId, checkoutAvailab
   const count = Object.values(bag).reduce((sum, quantity) => sum + quantity, 0);
   const availableIds = new Set(selected.map(product => product.id));
   const unavailable = Object.keys(bag).filter(id => !availableIds.has(id));
+  const suggestions = bagPage && selected.length
+    ? products.filter(product => !product.preview && product.imageUrl && !bag[product.id]).slice(0, 6)
+    : [];
+  const canCheckout = checkoutAvailable && locationId && !unavailable.length &&
+    (selected.every(item => item.instantMinutes != null) || selected.every(item => item.shipping));
   const total = selected.reduce((sum, product) => sum + bag[product.id] * product.pricePaise, 0);
 
   function change(id, amount) {
@@ -116,8 +121,14 @@ export default function Store({ products, locations, locationId, checkoutAvailab
       : 'Available items from your last order were added to your bag.');
   }
 
-  return <div className="store">
-    <StoreHeader customer={customer} count={count} homeHref={homeHref} bagHref={bagHref} accountHref={accountHref} />
+  return <div className={bagPage ? "store bag-store" : "store"}>
+    {bagPage ? <header className="checkout-bar">
+      <a href={homeHref} aria-label="Back to shop">←</a>
+      <strong>Checkout</strong>
+      <a href={`${homeHref}#browse`} aria-label="Browse products"><Icon name="browse" /></a>
+      {bagLoaded && typeof navigator !== 'undefined' && navigator.share && <button type="button"
+        onClick={() => navigator.share({ title: 'Flickit', url: window.location.origin }).catch(() => {})}>Share</button>}
+    </header> : <StoreHeader customer={customer} count={count} homeHref={homeHref} bagHref={bagHref} accountHref={accountHref} />}
     <main>
       {demoFallback && <p className="catalogue-status" role="status">
         Showing the demo catalogue while the service reconnects. Checkout is unavailable.
@@ -243,7 +254,10 @@ export default function Store({ products, locations, locationId, checkoutAvailab
             <h2>Your bag is empty</h2>
             <a className="bag-shop" href={`${homeHref}#browse`}>Browse groceries</a>
           </div> : <div className="bag-layout">
-          <ul className="bag-panel bag-items" aria-label="Bag items">
+          <section className="bag-panel checkout-shipment" aria-labelledby="shipment-title">
+          <h2 id="shipment-title">{area ? area.name : 'Items in your bag'}</h2>
+          <p>{count} {count === 1 ? 'item' : 'items'}</p>
+          <ul className="bag-items" aria-label="Bag items">
             {selected.map(product => <li className="bag-item" key={product.id}>
               <span className="bag-photo">{product.imageUrl
                 ? <img src={product.imageUrl} alt="" width="72" height="72" loading="lazy" />
@@ -270,9 +284,25 @@ export default function Store({ products, locations, locationId, checkoutAvailab
               <button type="button" onClick={() => change(id, -bag[id])}>Remove</button>
             </li>)}
           </ul>
-          <section className="bag-panel bag-summary" aria-labelledby="bag-summary-title">
-          <h2 id="bag-summary-title">Order summary</h2>
-          <div className="bag-subtotal"><span>Subtotal</span><strong>{price(total)}</strong></div>
+          </section>
+          {suggestions.length > 0 && <section className="bag-panel checkout-suggestions" aria-labelledby="suggestions-title">
+            <h2 id="suggestions-title">You might also like</h2>
+            <div className="checkout-product-grid">
+              {suggestions.map(product => <div key={product.id} className="checkout-product">
+                <img src={product.imageUrl} alt="" width="132" height="132" loading="lazy" />
+                <div className="checkout-product-actions"><small>{product.pack}</small>
+                  <button type="button" aria-label={`Add ${product.name}`} onClick={() => change(product.id, 1)}>Add</button>
+                </div>
+                <strong>{price(product.pricePaise)}</strong>
+                <p>{product.name}</p>
+              </div>)}
+            </div>
+            <a className="checkout-browse" href={`${homeHref}#browse`}>See all products →</a>
+          </section>}
+          <section id="checkout-details" className="bag-panel bag-summary" aria-labelledby="bag-summary-title">
+          <h2 id="bag-summary-title">Bill details</h2>
+          <div className="checkout-bill-row"><span>Items total</span><span>{price(total)}</span></div>
+          <div className="bag-subtotal"><span>{canCheckout ? 'Grand total' : 'Subtotal'}</span><strong>{price(total)}</strong></div>
           {unavailable.length > 0 ? <p>Remove unavailable items to check out.</p> : !checkoutAvailable ? <p>Checkout is currently unavailable.</p> : !locationId
             ? <p><a href={homeHref}>Choose a delivery location</a> to check out.</p>
             : <Checkout locationId={locationId} selected={selected} bag={bag} totalPaise={total}
@@ -289,7 +319,13 @@ export default function Store({ products, locations, locationId, checkoutAvailab
         </div>}
       </section>}
     </main>
-    <nav className="bottom-appbar" aria-label="Shopping shortcuts">
+    {bagPage && bagLoaded && !catalogueState && count > 0 && <footer className="checkout-dock">
+      <div><small>Items subtotal</small><strong>{price(total)}</strong></div>
+      {canCheckout ? <a href="#checkout-details">Choose address</a> :
+        checkoutAvailable && !locationId ? <a href={homeHref}>Choose delivery area</a> :
+        <button type="button" disabled>Checkout unavailable</button>}
+    </footer>}
+    {!bagPage && <nav className="bottom-appbar" aria-label="Shopping shortcuts">
       {[['home', 'Home', homeHref], ['bag', 'Bag', bagHref], ['browse', 'Categories', `${homeHref}#browse`]]
         .map(([id, label, href]) =>
           <a href={href} key={id} aria-current={(bagPage ? 'bag' : shortcut) === id ? 'location' : undefined}
@@ -302,6 +338,6 @@ export default function Store({ products, locations, locationId, checkoutAvailab
       <a href={accountHref}>
         <span className="appbar-icon"><Icon name="user" /></span><span>Account</span>
       </a>
-    </nav>
+    </nav>}
   </div>;
 }
