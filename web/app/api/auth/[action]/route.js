@@ -18,6 +18,7 @@ export async function POST(request, { params }) {
     if (action === 'logout' && token) headers.Authorization = `Bearer ${token}`;
     const upstream = await customerApi(action, {
       method: 'POST', headers, body: request.body, duplex: 'half',
+      signal: AbortSignal.timeout(55000),
     });
     const result = await upstream.json();
     if (action === 'logout' && (upstream.ok || upstream.status === 401)) {
