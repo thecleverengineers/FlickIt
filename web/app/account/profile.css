@@ -34,3 +34,8 @@
     --accent: #ffbe97; background: #241520;
   }
 }
+
+.account-guest { padding: 16px; }
+.account-guest h2 { padding: 0; }
+.account-guest p { color: var(--muted); }
+.account-guest a { font-weight: 650; color: var(--accent); }

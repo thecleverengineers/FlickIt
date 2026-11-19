@@ -14,18 +14,19 @@ function Detail({ title, children }) {
   </details>;
 }
 
-export default function Account({ homeHref, bagHref }) {
+export default function Account({ homeHref, bagHref, customer = null }) {
   const [preferences, setPreferences] = useState(defaults);
   const [order, setOrder] = useState(null);
   const [notice, setNotice] = useState('');
 
   useEffect(() => {
+    if (!customer) return;
     try {
       const saved = JSON.parse(localStorage.getItem(preferencesKey) || '{}');
       setPreferences({ ...defaults, ...saved });
       setOrder(JSON.parse(sessionStorage.getItem(orderKey) || 'null'));
     } catch {}
-  }, []);
+  }, [customer]);
 
   function save(field, value) {
     const next = { ...preferences, [field]: value };
@@ -55,10 +56,11 @@ export default function Account({ homeHref, bagHref }) {
     <main>
       <a className="account-back" href={homeHref}>← Back to shopping</a>
       <section className="account-hero">
-        <span className="account-avatar"><Icon name="user" /></span>
+        <span className="account-avatar"><Icon name={customer ? "profile" : "user"} /></span>
         <h1>Your account</h1>
-        <p>Shopping as a guest</p>
+        <p>{customer ? customer.name : "Shopping as a guest"}</p>
       </section>
+      {customer ? <>
       <section className="account-group">
         <Detail title={preferences.birthday ? 'Edit your birthday' : 'Add your birthday'}>
           <label>Birthday <input type="date" value={preferences.birthday}
@@ -119,6 +121,11 @@ export default function Account({ homeHref, bagHref }) {
         <Detail title="Beta programme"><p>Public beta enrolment is unavailable.</p></Detail>
       </section>
       {notice && <p className="account-notice" role="status">{notice}</p>}
+      </> : <section className="account-group account-guest" aria-label="Guest access">
+        <h2>Sign in to view your profile</h2>
+        <p>Customer sign-in is currently unavailable.</p>
+        <a href={homeHref}>Continue shopping</a>
+      </section>}
     </main>
     <nav className="bottom-appbar" aria-label="Shopping shortcuts">
       <a href={homeHref}><span className="appbar-icon"><Icon name="home" /></span><span>Home</span></a>
