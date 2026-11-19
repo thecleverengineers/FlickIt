@@ -15,11 +15,13 @@ const lastOrderKey = 'flickit.last-order-items';
 const bagKey = 'flickit.shopping-bag';
 const price = paise => currency.format(paise / 100);
 
-export default function Store({ products, locations, locationId, checkoutAvailable, catalogueState, bagPage, categoriesPage, initialCategory, demoFallback, customer }) {
+export default function Store({ products, locations, locationId, checkoutAvailable, catalogueState, bagPage, categoriesPage, initialCategory, productId, demoFallback, customer }) {
   const locationQuery = locationId ? `?${new URLSearchParams({ location: locationId })}` : '';
   const homeHref = `/${locationQuery}`;
   const categoriesHref = `/categories${locationQuery}`;
   const accountHref = `/account${locationQuery}`;
+  const productHref = id => `/products/${encodeURIComponent(id)}${locationQuery}`;
+  const productDetail = productId ? products.find(product => product.id === productId) : null;
   const bagHref = `/bag${locationQuery}`;
 
   const [receipt, setReceipt] = useState(null);
@@ -138,14 +140,14 @@ export default function Store({ products, locations, locationId, checkoutAvailab
       {demoFallback && <p className="catalogue-status" role="status">
         Showing the demo catalogue while the service reconnects. Checkout is unavailable.
       </p>}
-      {!bagPage && !categoryDetail && <section className="delivery-summary" aria-label="Delivery estimate">
+      {!productId && !bagPage && !categoryDetail && <section className="delivery-summary" aria-label="Delivery estimate">
         <div><p>{area ? 'Delivering to' : 'Delivery location'}</p>
           <strong>{area?.name || 'Choose your area'}</strong></div>
         {instantEstimate && <div className="delivery-estimate"><strong>{instantEstimate}</strong><span>Instant delivery estimate</span></div>}
         {area && !instantEstimate && products.some(product => product.shipping) &&
           <div className="delivery-estimate"><span>Standard shipping available</span></div>}
       </section>}
-      {!categoryDetail && locations.length > 0 && <form className="location-form" action={bagPage ? "/bag" : categoriesPage ? "/categories" : "/"}>
+      {!productId && !categoryDetail && locations.length > 0 && <form className="location-form" action={bagPage ? "/bag" : categoriesPage ? "/categories" : "/"}>
         <label htmlFor="location">Delivery location</label>
         <select id="location" name="location" defaultValue={locationId}>
           <option value="">Browse all locations</option>
@@ -155,7 +157,7 @@ export default function Store({ products, locations, locationId, checkoutAvailab
         </select>
         <button type="submit">Update</button>
       </form>}
-      {!bagPage && <>
+      {!bagPage && !productId && <>
       {categoriesPage && !categoryDetail && <h1 className="categories-title">Categories</h1>}
       <div className="store-search" id="category-search">
         <span aria-hidden="true">⌕</span>
@@ -234,6 +236,7 @@ export default function Store({ products, locations, locationId, checkoutAvailab
       </div>
       <section className="grid" aria-label="Products">
         {visible.map(product => <article className="product-card" key={product.id}>
+          <a className="product-detail-link" href={productHref(product.id)}>
           {product.imageUrl ? <div className="product-art product-photo">
             <img src={product.imageUrl} alt={product.name} loading="lazy" decoding="async"
               referrerPolicy="no-referrer" onError={event => {
@@ -243,6 +246,7 @@ export default function Store({ products, locations, locationId, checkoutAvailab
             <span hidden aria-hidden="true">{productIcons[product.id] || icons[product.category] || '🛒'}</span>
           </div> : <div className="product-art" aria-hidden="true">{productIcons[product.id] || icons[product.category] || '🛒'}</div>}
           <h2>{product.name}</h2>
+          </a>
           <p className="product-meta">{[product.brand, product.pack].filter(Boolean).join(' · ')}</p>
           {product.variety && product.variety !== product.pack && <p>{product.variety}</p>}
           {product.description && <details className="product-details">
@@ -261,6 +265,24 @@ export default function Store({ products, locations, locationId, checkoutAvailab
       </div>
       </section>}
       </>}
+      {productId && (catalogueState ? <CatalogueStatus state={catalogueState} /> : productDetail ? <article className="product-detail-page">
+        <a href={categoryHref(productDetail.category)}>← {productDetail.category}</a>
+        {productDetail.imageUrl && <img src={productDetail.imageUrl} alt={productDetail.name} referrerPolicy="no-referrer" />}
+        <div className="product-detail-copy">
+          <h1>{productDetail.name}</h1>
+          <p>{[productDetail.brand, productDetail.pack, productDetail.variety !== productDetail.pack && productDetail.variety].filter(Boolean).join(' · ')}</p>
+          <strong>{price(productDetail.pricePaise)}</strong>
+          {productDetail.description && <p className="product-detail-description">{productDetail.description}</p>}
+          {productDetail.seller && <p>Sold by {productDetail.seller}</p>}
+          {productDetail.instantMinutes != null && <p>Estimated delivery {productDetail.instantMinutes} min</p>}
+          {productDetail.shipping && <p>Standard shipping available</p>}
+          {productDetail.preview ? <p>Preview only</p> : <div className="row">
+            <button className="add-product" type="button" disabled={!bagLoaded || (bag[productId] ?? 0) >= 99}
+              onClick={() => change(productId, 1)}>Add to bag</button>
+            {bag[productId] > 0 && <a href={bagHref}>View bag ({bag[productId]})</a>}
+          </div>}
+        </div>
+      </article> : <p>This product is unavailable.</p>)}
       {bagPage && <section className="bag-page" aria-labelledby="bag-title">
         <header className="bag-heading">
           <a className="bag-back" href={`${homeHref}#browse`}>← Continue shopping</a>
@@ -311,12 +333,12 @@ export default function Store({ products, locations, locationId, checkoutAvailab
             <h2 id="suggestions-title">You might also like</h2>
             <div className="checkout-product-grid">
               {suggestions.map(product => <div key={product.id} className="checkout-product">
-                <img src={product.imageUrl} alt="" width="132" height="132" loading="lazy" />
+                <a href={productHref(product.id)} aria-label={product.name}><img src={product.imageUrl} alt="" width="132" height="132" loading="lazy" /></a>
                 <div className="checkout-product-actions"><small>{product.pack}</small>
                   <button type="button" aria-label={`Add ${product.name}`} onClick={() => change(product.id, 1)}>Add</button>
                 </div>
                 <strong>{price(product.pricePaise)}</strong>
-                <p>{product.name}</p>
+                <p><a className="product-detail-link" href={productHref(product.id)}>{product.name}</a></p>
               </div>)}
             </div>
             <a className="checkout-browse" href={`${homeHref}#browse`}>See all products →</a>
