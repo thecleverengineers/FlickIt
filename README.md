@@ -62,3 +62,11 @@ warehouses, listings, and accepted payment methods. Use the API's configured
 `MARKETPLACE_ADMIN_TOKEN` to load settings. The web app forwards the token to the
 API for each request and does not persist it. Demo data can be viewed and edited
 locally in the form. Saving is available only when the API uses MongoDB.
+
+The web storefront supports cash-on-delivery checkout once MongoDB is connected,
+a marketplace configuration exists, and COD is enabled. Checkout uses current
+stock, prices and delivery eligibility. Confirmation and stock deduction are
+atomic, and retrying an unchanged request uses the same order. Admin saves include
+the current configuration revision so an order cannot be overwritten by a stale
+admin form. This first checkout includes the item subtotal only. Fulfilment
+operations, delivery fees, carrier booking, and online payment remain pending.

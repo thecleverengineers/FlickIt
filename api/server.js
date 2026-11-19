@@ -1,5 +1,6 @@
 import { createServer } from 'node:http';
 import { createHash, timingSafeEqual } from 'node:crypto';
+import { OrderError, parseOrder, placeOrder } from './orders.js';
 import { sampleProducts } from './catalogue.js';
 import { client, database } from './database.js';
 import { demoMarketplace, getCatalogue, validateMarketplace } from './marketplace.js';
@@ -9,10 +10,10 @@ function send(response, status, body) {
   response.end(JSON.stringify(body));
 }
 
-async function readConfig() {
-  if (!database) return demoMarketplace;
+async function readMarketplace() {
+  if (!database) return { config: demoMarketplace, revision: 0 };
   const record = await database.collection('settings').findOne({ _id: 'marketplace' });
-  return record?.config ?? null;
+  return { config: record?.config ?? null, revision: record?.revision ?? 0 };
 }
 
 function isAdmin(request) {
@@ -50,12 +51,14 @@ if (process.env.FLICKIT_REQUIRE_DATABASE === 'true') {
 createServer(async (request, response) => {
   const url = new URL(request.url, 'http://localhost');
   const path = url.pathname;
-  const admin = path === '/v1/admin/marketplace';
-  if (!admin && !['/health', '/v1/products', '/v1/marketplace'].includes(path)) {
+  const adminOrders = path === '/v1/admin/orders';
+  const admin = path === '/v1/admin/marketplace' || adminOrders;
+  const order = path === '/v1/orders';
+  if (!admin && !order && !['/health', '/v1/products', '/v1/marketplace'].includes(path)) {
     return send(response, 404, { error: 'Not found' });
   }
   if (admin && !isAdmin(request)) return send(response, 401, { error: 'Unauthorized' });
-  const methods = admin ? ['GET', 'PUT'] : ['GET'];
+  const methods = adminOrders ? ['GET', 'PATCH'] : admin ? ['GET', 'PUT'] : order ? ['POST'] : ['GET'];
   if (!methods.includes(request.method)) {
     response.setHeader('Allow', methods.join(', '));
     return send(response, 405, { error: 'Method not allowed' });
@@ -65,24 +68,73 @@ createServer(async (request, response) => {
       if (database) await database.command({ ping: 1 });
       return send(response, 200, { status: 'ok', mode: database ? 'mongodb' : 'demo' });
     }
+    if (adminOrders) {
+      if (!database) return send(response, 503, { error: 'Orders require a MongoDB connection' });
+      const orders = database.collection('orders');
+      if (request.method === 'GET') {
+        const recent = await orders.find({}, { projection: { _id: 0, receipt: 1, deliveryAddress: 1, createdAt: 1 } })
+          .sort({ createdAt: -1 }).limit(100).toArray();
+        return send(response, 200, { orders: recent });
+      }
+      let body;
+      try { body = await readBody(request); } catch {
+        return send(response, 400, { error: 'Invalid order update' });
+      }
+      const transitions = new Map([
+        ['confirmed', 'packing'], ['packing', 'dispatched'], ['dispatched', 'delivered'],
+      ]);
+      if (typeof body?.reference !== 'string' || !transitions.has(body.status)) {
+        return send(response, 400, { error: 'Invalid order reference or status' });
+      }
+      const result = await orders.updateOne({
+        'receipt.reference': body.reference, 'receipt.status': body.status,
+      }, { $set: { 'receipt.status': transitions.get(body.status), updatedAt: new Date() } });
+      if (!result.matchedCount) return send(response, 409, { error: 'Order changed. Reload orders before updating.' });
+      return send(response, 200, { status: transitions.get(body.status) });
+    }
+    if (order) {
+      if (!database) return send(response, 503, { error: 'Checkout is unavailable in demo mode' });
+      let body;
+      try {
+        body = await readBody(request);
+      } catch {
+        return send(response, 400, { error: 'Invalid checkout request' });
+      }
+      return send(response, 201, { order: await placeOrder(client, database, parseOrder(body)) });
+    }
     if (admin && request.method === 'PUT') {
       if (!database) return send(response, 503, { error: 'Configure MongoDB for admin writes' });
-      let config;
+      let config, revision;
       try {
-        config = validateMarketplace(await readBody(request));
+        const body = await readBody(request);
+        config = validateMarketplace(body);
+        revision = body.revision;
+        if (!Number.isSafeInteger(revision) || revision < 0) throw new Error('A configuration revision is required');
       } catch (error) {
         return send(response, 400, { error: error.message });
       }
-      await database.collection('settings').updateOne(
-        { _id: 'marketplace' }, { $set: { config } }, { upsert: true }
-      );
-      return send(response, 200, { config, writable: Boolean(database) });
+      const settings = database.collection('settings');
+      const filter = revision === 0
+        ? { _id: 'marketplace', $or: [{ revision: 0 }, { revision: { $exists: false } }] }
+        : { _id: 'marketplace', revision };
+      try {
+        const result = await settings.updateOne(filter, { $set: { config }, $inc: { revision: 1 } },
+          { upsert: revision === 0 });
+        if (!result.matchedCount && !result.upsertedCount) {
+          return send(response, 409, { error: 'Marketplace settings changed. Reload before saving.' });
+        }
+      } catch (error) {
+        if (error.code !== 11000) throw error;
+        return send(response, 409, { error: 'Marketplace settings changed. Reload before saving.' });
+      }
+      return send(response, 200, { config, revision: revision + 1, writable: true });
     }
-    const config = await readConfig();
-    if (admin) return send(response, 200, { config, writable: Boolean(database) });
+    const { config, revision } = await readMarketplace();
+    if (admin) return send(response, 200, { config, revision, writable: Boolean(database) });
     if (path === '/v1/marketplace') return send(response, 200, {
       locations: config?.locations ?? [],
       paymentMethods: config?.paymentMethods ?? [],
+      checkoutAvailable: Boolean(database && config?.paymentMethods.includes('cod')),
     });
     const locationId = url.searchParams.get('location');
     if (locationId && !config?.locations.some(location => location.id === locationId)) {
@@ -98,6 +150,7 @@ createServer(async (request, response) => {
       : sampleProducts;
     return send(response, 200, { products });
   } catch (error) {
+    if (error instanceof OrderError) return send(response, error.status, { error: error.message });
     console.error('Marketplace request failed', error.name);
     return send(response, 503, { error: 'Marketplace temporarily unavailable' });
   }

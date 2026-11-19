@@ -1,12 +1,14 @@
 'use client';
 
 import { useState } from 'react';
+import Checkout from './checkout';
 
 const currency = new Intl.NumberFormat('en-IN', { currency: 'INR', style: 'currency' });
 const icons = { Produce: '🥬', Dairy: '🥛', Pantry: '🌾' };
 const price = paise => currency.format(paise / 100);
 
-export default function Store({ products, locationSelected }) {
+export default function Store({ products, locationId, checkoutAvailable }) {
+  const [receipt, setReceipt] = useState(null);
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('All');
   const [brand, setBrand] = useState('');
@@ -42,7 +44,7 @@ export default function Store({ products, locationSelected }) {
           <option value="">All brands</option>
           {brands.map(item => <option key={item}>{item}</option>)}
         </select></label>}
-        {locationSelected && <label>Delivery <select value={delivery} onChange={event => setDelivery(event.target.value)}>
+        {locationId && <label>Delivery <select value={delivery} onChange={event => setDelivery(event.target.value)}>
           <option value="">All options</option>
           <option value="instant">Instant delivery</option>
           <option value="shipping">Standard shipping</option>
@@ -63,12 +65,18 @@ export default function Store({ products, locationSelected }) {
       </section>
       {visible.length === 0 && <p>No groceries match your search.</p>}
       <section id="bag"><h2>Your bag</h2>
+        {receipt && <p role="status">Order confirmed. Reference <strong>{receipt.reference}</strong>.
+          Pay {price(receipt.totalPaise)} on delivery.</p>}
         {count === 0 ? <p>Your bag is empty.</p> : <>
           <ul>{selected.map(product => <li className="row" key={product.id}>
             <span>{product.name} × {bag[product.id]}</span>
             <button aria-label={`Remove one ${product.name}`} onClick={() => change(product.id, -1)}>Remove one</button>
           </li>)}</ul>
           <strong>Subtotal {price(total)}</strong>
+          {!checkoutAvailable ? <p>Checkout is currently unavailable.</p> : !locationId
+            ? <p>Choose your delivery location to check out.</p>
+            : <Checkout locationId={locationId} selected={selected} bag={bag} totalPaise={total}
+                onOrder={order => { setReceipt(order); setBag({}); }} />}
         </>}
       </section>
     </main>

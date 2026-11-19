@@ -30,7 +30,7 @@ export default async function Page({ searchParams }) {
         </select>
         <button type="submit">Update location</button>
       </form>}
-      <Store key={current} products={products} locationSelected={Boolean(current)} />
+      <Store key={current} products={products} locationId={current} checkoutAvailable={marketplace.checkoutAvailable} />
     </>;
   } catch {
     return <main><h1>Flickit</h1><p>We couldn’t load the catalogue.</p><a href="/">Try again</a></main>;

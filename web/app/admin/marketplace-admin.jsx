@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Orders from './orders';
 
 const sections = {
   locations: { title: 'Delivery areas', fields: { name: 'Area', city: 'City', town: 'Town' } },
@@ -27,6 +28,7 @@ const empty = { locations: [], sellers: [], warehouses: [], listings: [], paymen
 export default function MarketplaceAdmin() {
   const [token, setToken] = useState('');
   const [config, setConfig] = useState(null);
+  const [revision, setRevision] = useState(0);
   const [section, setSection] = useState('locations');
   const [canSave, setCanSave] = useState(false);
   const [working, setWorking] = useState(false);
@@ -39,11 +41,12 @@ export default function MarketplaceAdmin() {
       const response = await fetch('/api/admin/marketplace', {
         method,
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: method === 'PUT' ? JSON.stringify(config) : undefined,
+        body: method === 'PUT' ? JSON.stringify({ ...config, revision }) : undefined,
         cache: 'no-store',
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error);
+      setRevision(result.revision ?? 0);
       setConfig(result.config ?? empty);
       setCanSave(result.writable === true);
       setStatus(method === 'PUT' ? 'Marketplace settings saved.' :
@@ -103,16 +106,16 @@ export default function MarketplaceAdmin() {
         setConfig(null);
         setStatus('');
       }} disabled={working} /></label>
-      <button disabled={working || Boolean(config)}>Load settings</button>
+      <button disabled={working}>{config ? 'Reload settings' : 'Load settings'}</button>
     </form>
     <p role="status">{status}</p>
     {config && <fieldset disabled={working} className="admin-editor">
       <legend>Marketplace settings</legend>
       <nav aria-label="Marketplace sections">
-        {[...Object.entries(sections).map(([key, value]) => [key, value.title]), ['payments', 'Payments']]
+        {[...Object.entries(sections).map(([key, value]) => [key, value.title]), ['payments', 'Payments'], ['orders', 'Orders']]
           .map(([key, label]) => <button key={key} aria-pressed={section === key} onClick={() => setSection(key)}>{label}</button>)}
       </nav>
-      {section === 'payments' ? <div className="admin-grid">
+      {section === 'orders' ? <Orders token={token} /> : section === 'payments' ? <div className="admin-grid">
         {[['cod', 'Cash on delivery'], ['online', 'Online payment']].map(([method, label]) =>
           <label key={method}>{label}<input type="checkbox" checked={config.paymentMethods.includes(method)}
             onChange={event => {
@@ -136,9 +139,9 @@ export default function MarketplaceAdmin() {
           <button onClick={() => remove(row.id)}>Remove</button>
         </fieldset>)}
       </>}
-      <div className="admin-actions">
+      {section !== 'orders' && <div className="admin-actions">
         <button disabled={!canSave} onClick={() => void sync('PUT')}>Save marketplace settings</button>
-      </div>
+      </div>}
     </fieldset>}
   </>;
 }
