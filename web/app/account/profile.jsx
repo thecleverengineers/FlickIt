@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import OrderSummary from './order-summary';
 import { sectionSlug } from './sections';
 import { Icon } from '../store-header';
 
@@ -8,7 +9,7 @@ const preferencesKey = 'flickit.account-preferences';
 const defaults = { birthday: '', appearance: 'system', showOffers: true };
 const money = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' });
 
-export default function Account({ homeHref, bagHref, loginHref, customer = null, orders = null, orderPhotos = {}, section, sectionTitle, orderDetails, ordersHref }) {
+export default function Account({ homeHref, bagHref, loginHref, customer = null, orders = null, orderCatalogue = {}, section, sectionTitle, orderDetails, ordersHref }) {
   const query = homeHref.slice(1);
   const accountHref = `/account${query}`;
   const detailHref = title => `/account/${sectionSlug(title)}${query}`;
@@ -104,6 +105,7 @@ export default function Account({ homeHref, bagHref, loginHref, customer = null,
         </>, preferences.birthday ? 'Edit your birthday' : 'Add your birthday')}
         {detail('Your orders', <>
           {orders === null ? <p>Order history is temporarily unavailable.</p> :
+            orders.length && orderDetails ? <OrderSummary order={orders[0]} catalogue={orderCatalogue} bagHref={bagHref} /> :
             orders.length ? <ul className="order-history">{orders.map(({ receipt, createdAt }) => <li className="order-card" key={receipt.reference}>
               {!orderDetails && <a className="order-card-link"
                 href={`/account/your-orders/${encodeURIComponent(receipt.reference)}${query}`}
@@ -121,21 +123,11 @@ export default function Account({ homeHref, bagHref, loginHref, customer = null,
               </header>
               {!orderDetails && <ul className="order-photo-strip" tabIndex={0} aria-label="Ordered products">
                 {(receipt.items ?? []).map(item => <li key={item.id} className="order-photo" title={item.name}>
-                  {orderPhotos[item.id] ? <img src={orderPhotos[item.id]} alt={item.name} width="60" height="60" loading="lazy" />
+                  {orderCatalogue[item.id]?.imageUrl ? <img src={orderCatalogue[item.id]?.imageUrl} alt={item.name} width="60" height="60" loading="lazy" />
                     : <span role="img" aria-label={item.name}><Icon name="bag" /></span>}
                 </li>)}
               </ul>}
-              {orderDetails ? <div className="order-reference">
-              <p><strong>Order reference</strong><br />{receipt.reference}</p>
-              <ul className="order-products">{(receipt.items ?? []).map(item => <li key={item.id}>
-                <span className="order-photo">{orderPhotos[item.id]
-                  ? <img src={orderPhotos[item.id]} alt="" width="52" height="52" loading="lazy" />
-                  : <Icon name="bag" />}</span>
-                <div><strong>{item.name}</strong>
-                  <p>{money.format(item.pricePaise / 100)} × {item.quantity}</p></div>
-                <strong>{money.format(item.pricePaise * item.quantity / 100)}</strong>
-              </li>)}</ul>
-              </div> : <p className="order-card-action" aria-hidden="true">View order details →</p>}
+              <p className="order-card-action" aria-hidden="true">View order details →</p>
             </li>)}</ul> : <p>No confirmed orders on your account yet.</p>}
         </>)}
         {detail('Need help?', <><p>Review your delivery area and items in <a href={bagHref}>your bag</a>.</p></>)}
