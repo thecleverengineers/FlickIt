@@ -69,7 +69,7 @@
 .order-history, .order-products { margin: 0; padding: 0; list-style: none; display: grid; }
 .order-history { gap: 16px; }
 .order-card { border: 1px solid var(--line); border-radius: 20px; overflow: hidden; background: var(--surface); }
-.order-card header, .order-card footer { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 16px; }
+.order-card header { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 16px; }
 .order-card header { border-bottom: 1px solid var(--line); }
 .order-card header h2 { margin: 0; padding: 0; font-size: 1.05rem; }
 .order-card time { color: var(--muted); font-size: .85rem; }
@@ -80,13 +80,14 @@
 .order-products li p { margin: 3px 0 0; color: var(--muted); font-size: .8rem; }
 .order-photo { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 12px; background: #faf0e9; color: #873621; overflow: hidden; }
 .order-photo img { width: 100%; height: 100%; object-fit: contain; }
-.order-card footer { border-top: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.order-header-meta { display: grid; justify-items: end; gap: 6px; font-variant-numeric: tabular-nums; }
+.orders-page .order-reference { border-top: 1px solid var(--line); padding-top: 14px; }
 .order-reference { padding: 0 16px 14px; color: var(--muted); font-size: .82rem; }
 .order-reference summary { cursor: pointer; }
 
 .orders-page .account-section-title { margin: 16px 0 22px; font: 400 clamp(2.1rem, 6vw, 3rem)/1.1 Georgia, serif; letter-spacing: -.035em; }
 .orders-page .order-card { border-radius: 22px; box-shadow: 0 6px 24px #41201e08; }
-.orders-page .order-card header, .orders-page .order-card footer { padding: 17px 16px; }
+.orders-page .order-card header { padding: 17px 16px; }
 .orders-page .order-card header h2 { font-weight: 600; }
 .orders-page .order-status { background: #e4eee2; font-weight: 600; }
 .order-photo-strip { display: flex; gap: clamp(16px, 6vw, 42px); margin: 0; padding: 23px 20px; list-style: none; overflow-x: auto; scroll-snap-type: x proximity; scroll-padding-inline: 20px; }
