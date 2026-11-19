@@ -251,7 +251,12 @@ export default function Store({ products, locations, locationId, checkoutAvailab
               <div className="bag-item-info">
                 <h2>{product.name}</h2>
                 {product.pack && <p>{product.pack}</p>}
-                <strong>{price(product.pricePaise * bag[product.id])}</strong>
+              </div>
+              <div className="bag-line-price">
+                <span>{price(product.pricePaise)} × {bag[product.id]}</span>
+                <strong aria-label={`Item total ${price(product.pricePaise * bag[product.id])}`}>
+                  {price(product.pricePaise * bag[product.id])}
+                </strong>
               </div>
               <div className="bag-stepper" role="group" aria-label={`Quantity for ${product.name}`}>
                 <button type="button" aria-label={`Remove one ${product.name}`} onClick={() => change(product.id, -1)}>−</button>
