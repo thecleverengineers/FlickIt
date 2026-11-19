@@ -88,9 +88,9 @@ export default function Account({ homeHref, bagHref, loginHref, customer = null,
     }
   }
 
-  return <div className={`store account-page ${section ? "account-subpage" : ""} theme-${preferences.appearance}`}>
+  return <div className={`store account-page ${section ? "account-subpage" : ""} ${section === "your-orders" ? "orders-page" : ""} theme-${preferences.appearance}`}>
     <main>
-      <a className="account-back" href={section ? accountHref : homeHref}>{section ? "← Back to account" : "← Back to shopping"}</a>
+      <a className="account-back" href={section ? accountHref : homeHref}>{section === "your-orders" ? "← Back" : section ? "← Back to account" : "← Back to shopping"}</a>
       {section ? <h1 className="account-section-title">{sectionTitle}</h1> : <section className="account-hero">
         <span className="account-avatar"><Icon name={customer ? "profile" : "user"} /></span>
         <h1>Your account</h1>
@@ -113,16 +113,20 @@ export default function Account({ homeHref, bagHref, loginHref, customer = null,
                 </div>
                 <span className="order-status">{receipt.status.replaceAll('_', ' ')}</span>
               </header>
+              <ul className="order-photo-strip" tabIndex={0} aria-label="Ordered products">
+                {(receipt.items ?? []).map(item => <li key={item.id} className="order-photo" title={item.name}>
+                  {orderPhotos[item.id] ? <img src={orderPhotos[item.id]} alt={item.name} width="60" height="60" loading="lazy" />
+                    : <span role="img" aria-label={item.name}><Icon name="bag" /></span>}
+                </li>)}
+              </ul>
+              <footer><span>Order total</span><strong>{money.format(receipt.totalPaise / 100)}</strong></footer>
+              <details className="order-reference"><summary>Order reference</summary><p>{receipt.reference}</p>
               <ul className="order-products">{(receipt.items ?? []).map(item => <li key={item.id}>
-                <span className="order-photo">{orderPhotos[item.id]
-                  ? <img src={orderPhotos[item.id]} alt="" width="56" height="56" loading="lazy" />
-                  : <Icon name="bag" />}</span>
                 <div><strong>{item.name}</strong>
                   <p>{money.format(item.pricePaise / 100)} × {item.quantity}</p></div>
                 <strong>{money.format(item.pricePaise * item.quantity / 100)}</strong>
               </li>)}</ul>
-              <footer><span>Order total</span><strong>{money.format(receipt.totalPaise / 100)}</strong></footer>
-              <details className="order-reference"><summary>Order reference</summary><p>{receipt.reference}</p></details>
+              </details>
             </li>)}</ul> : <p>No confirmed orders on your account yet.</p>}
         </>)}
         {detail('Need help?', <><p>Review your delivery area and items in <a href={bagHref}>your bag</a>.</p></>)}
