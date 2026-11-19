@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Checkout from './checkout';
+import StoreHeader from './store-header';
 import CatalogueStatus from './catalogue-status';
 
 const currency = new Intl.NumberFormat('en-IN', { currency: 'INR', style: 'currency' });
@@ -33,10 +34,7 @@ export default function Store({ products, locations, locationId, checkoutAvailab
   }
 
   return <div className="store">
-    <header className="store-header" id="home">
-      <a href="/" className="brand"><img src="/flickit-logo.png" alt="Flickit" width="2172" height="724" /></a>
-      <a href="#bag" className="bag-link">Bag <span>{count}</span></a>
-    </header>
+    <StoreHeader count={count} />
     <main>
       {locations.length > 0 && <form className="location-form" action="/">
         <label htmlFor="location">Delivery location</label>
