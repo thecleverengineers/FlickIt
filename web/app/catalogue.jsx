@@ -31,7 +31,7 @@ async function Catalogue({ searchParams, bagPage, categoriesPage }) {
   const timeout = allowDemoFallback ? 3500 : 55000;
   let locations = [];
   let current = '';
-  const { location } = await searchParams;
+  const { location, category } = await searchParams;
   const customer = await getCustomer();
   try {
     const marketplaceRequest = getApi('/v1/marketplace', Math.min(timeout, 8000)).catch(error => {
@@ -52,13 +52,13 @@ async function Catalogue({ searchParams, bagPage, categoriesPage }) {
       ]);
       locations = marketplace.locations;
     }
-    return <Store customer={customer} bagPage={bagPage} categoriesPage={categoriesPage} key={current} products={products} locations={locations}
+    return <Store customer={customer} bagPage={bagPage} categoriesPage={categoriesPage} initialCategory={category} key={current} products={products} locations={locations}
       locationId={current} checkoutAvailable={marketplace.checkoutAvailable} />;
   } catch (error) {
     console.warn('Product catalogue unavailable:', error.message);
     if (allowDemoFallback) {
       const demoLocation = demoMarketplace.locations.find(area => area.id === location)?.id || '';
-      return <Store customer={customer} bagPage={bagPage} categoriesPage={categoriesPage} key={demoLocation} products={getCatalogue(demoMarketplace, demoLocation)}
+      return <Store customer={customer} bagPage={bagPage} categoriesPage={categoriesPage} initialCategory={category} key={demoLocation} products={getCatalogue(demoMarketplace, demoLocation)}
         locations={demoMarketplace.locations} locationId={demoLocation} checkoutAvailable={false} demoFallback />;
     }
     return <Store customer={customer} bagPage={bagPage} categoriesPage={categoriesPage} products={[]} locations={locations} locationId={current || (typeof location === 'string' ? location : '')} catalogueState="unavailable" />;
