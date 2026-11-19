@@ -19,19 +19,8 @@ export default async function Page({ searchParams }) {
     const params = new URLSearchParams();
     if (current) params.set('location', current);
     const { products } = await getApi('/v1/products', params);
-    return <>
-      {marketplace.locations.length > 0 && <form className="location-form" action="/">
-        <label htmlFor="location">Delivery location</label>
-        <select id="location" name="location" defaultValue={current}>
-          <option value="">Browse all locations</option>
-          {marketplace.locations.map(area => <option key={area.id} value={area.id}>
-            {area.city} / {area.town} / {area.name}
-          </option>)}
-        </select>
-        <button type="submit">Update location</button>
-      </form>}
-      <Store key={current} products={products} locationId={current} checkoutAvailable={marketplace.checkoutAvailable} />
-    </>;
+    return <Store key={current} products={products} locations={marketplace.locations}
+      locationId={current} checkoutAvailable={marketplace.checkoutAvailable} />;
   } catch {
     return <main><h1>Flickit</h1><p>We couldn’t load the catalogue.</p><a href="/">Try again</a></main>;
   }
