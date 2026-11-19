@@ -26,7 +26,7 @@ async function getApi(path, timeout, params) {
   throw new Error('Catalogue API unavailable');
 }
 
-async function Catalogue({ searchParams, bagPage }) {
+async function Catalogue({ searchParams, bagPage, categoriesPage }) {
   const allowDemoFallback = process.env.FLICKIT_DEMO_CATALOGUE_FALLBACK === 'true';
   const timeout = allowDemoFallback ? 3500 : 55000;
   let locations = [];
@@ -52,22 +52,22 @@ async function Catalogue({ searchParams, bagPage }) {
       ]);
       locations = marketplace.locations;
     }
-    return <Store customer={customer} bagPage={bagPage} key={current} products={products} locations={locations}
+    return <Store customer={customer} bagPage={bagPage} categoriesPage={categoriesPage} key={current} products={products} locations={locations}
       locationId={current} checkoutAvailable={marketplace.checkoutAvailable} />;
   } catch (error) {
     console.warn('Product catalogue unavailable:', error.message);
     if (allowDemoFallback) {
       const demoLocation = demoMarketplace.locations.find(area => area.id === location)?.id || '';
-      return <Store customer={customer} bagPage={bagPage} key={demoLocation} products={getCatalogue(demoMarketplace, demoLocation)}
+      return <Store customer={customer} bagPage={bagPage} categoriesPage={categoriesPage} key={demoLocation} products={getCatalogue(demoMarketplace, demoLocation)}
         locations={demoMarketplace.locations} locationId={demoLocation} checkoutAvailable={false} demoFallback />;
     }
-    return <Store customer={customer} bagPage={bagPage} products={[]} locations={locations} locationId={current || (typeof location === 'string' ? location : '')} catalogueState="unavailable" />;
+    return <Store customer={customer} bagPage={bagPage} categoriesPage={categoriesPage} products={[]} locations={locations} locationId={current || (typeof location === 'string' ? location : '')} catalogueState="unavailable" />;
   }
 }
 
-export default async function CataloguePage({ searchParams, bagPage = false }) {
+export default async function CataloguePage({ searchParams, bagPage = false, categoriesPage = false }) {
   const { location } = await searchParams;
-  return <Suspense fallback={<Store bagPage={bagPage} products={[]} locations={[]} locationId={typeof location === 'string' ? location : ''} catalogueState="loading" />}>
-    <Catalogue bagPage={bagPage} searchParams={searchParams} />
+  return <Suspense fallback={<Store bagPage={bagPage} categoriesPage={categoriesPage} products={[]} locations={[]} locationId={typeof location === 'string' ? location : ''} catalogueState="loading" />}>
+    <Catalogue bagPage={bagPage} categoriesPage={categoriesPage} searchParams={searchParams} />
   </Suspense>;
 }
