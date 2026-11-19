@@ -83,3 +83,14 @@
 .order-card footer { border-top: 1px solid var(--line); font-variant-numeric: tabular-nums; }
 .order-reference { padding: 0 16px 14px; color: var(--muted); font-size: .82rem; }
 .order-reference summary { cursor: pointer; }
+
+.orders-page .account-section-title { margin: 16px 0 22px; font: 400 clamp(2.1rem, 6vw, 3rem)/1.1 Georgia, serif; letter-spacing: -.035em; }
+.orders-page .order-card { border-radius: 22px; box-shadow: 0 6px 24px #41201e08; }
+.orders-page .order-card header, .orders-page .order-card footer { padding: 17px 16px; }
+.orders-page .order-card header h2 { font-weight: 600; }
+.orders-page .order-status { background: #e4eee2; font-weight: 600; }
+.order-photo-strip { display: flex; gap: clamp(16px, 6vw, 42px); margin: 0; padding: 23px 20px; list-style: none; overflow-x: auto; scroll-snap-type: x proximity; scroll-padding-inline: 20px; }
+.order-photo-strip .order-photo { flex: 0 0 62px; width: 62px; height: 62px; padding: 4px; background: white; border: 1px solid #e8ddd4; scroll-snap-align: start; }
+.order-photo-strip:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
+.order-reference .order-products { padding: 0; }
+.order-reference .order-products li { grid-template-columns: minmax(0, 1fr) auto; }
