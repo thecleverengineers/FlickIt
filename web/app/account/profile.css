@@ -1,0 +1,36 @@
+.account-page main { max-width: 720px; }
+.account-back { display: inline-block; padding: 10px 0; font-weight: 650; text-decoration: none; }
+.account-hero {
+  text-align: center; padding: 28px 16px; margin: 8px 0 16px; border-radius: 22px;
+  background: linear-gradient(135deg, #eed3d1, #ffebd4); color: #421f31;
+}
+.account-hero h1 { font-size: clamp(2rem, 8vw, 3rem); margin: 12px 0 4px; }
+.account-hero p { margin: 0; }
+.account-avatar { display: inline-grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; background: #fffaf6; }
+.account-avatar svg { width: 30px; height: 30px; }
+.account-group { margin-bottom: 13px; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; background: var(--surface); }
+.account-group h2 { margin: 0; padding: 15px; font-size: 1.15rem; }
+.account-detail summary, .account-page .account-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  min-height: 49px; padding: 12px 15px; width: 100%; text-decoration: none;
+  border: 0; border-radius: 0; border-top: 1px solid var(--line);
+  background: transparent; color: inherit; text-align: left; cursor: pointer; font-weight: 600;
+}
+.account-detail summary::-webkit-details-marker { display: none; }
+.account-detail summary::after { content: "›"; color: var(--muted); font-size: 1.15rem; }
+.account-detail[open] summary::after { transform: rotate(90deg); }
+.account-detail-body { padding: 0 15px 14px; color: var(--muted); }
+.account-detail-body p { margin: 8px 0; overflow-wrap: anywhere; }
+.account-detail-body :is(input, select, button) { background: var(--surface); color: var(--ink); }
+.account-detail-body input[type=checkbox] { width: auto; }
+.account-notice { position: fixed; z-index: 3; right: 12px; bottom: calc(85px + env(safe-area-inset-bottom)); max-width: min(420px, 92vw); padding: 12px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); }
+.account-page.theme-dark {
+  --ink: #fff0e8; --muted: #e4c4c2; --surface: #371e2b; --line: #664552;
+  --accent: #ffbe97; background: #241520;
+}
+@media (prefers-color-scheme: dark) {
+  .account-page.theme-system {
+    --ink: #fff0e8; --muted: #e4c4c2; --surface: #371e2b; --line: #664552;
+    --accent: #ffbe97; background: #241520;
+  }
+}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Checkout from './checkout';
 import StoreHeader, { Icon } from './store-header';
 import CatalogueStatus from './catalogue-status';
@@ -25,9 +25,9 @@ export default function Store({ products, locations, locationId, checkoutAvailab
     return () => window.removeEventListener('hashchange', readShortcut);
   }, []);
 
-  const accountButton = useRef(null);
   const locationQuery = locationId ? `?${new URLSearchParams({ location: locationId })}` : '';
   const homeHref = `/${locationQuery}`;
+  const accountHref = `/account${locationQuery}`;
   const bagHref = `/bag${locationQuery}`;
 
   const [receipt, setReceipt] = useState(null);
@@ -36,6 +36,7 @@ export default function Store({ products, locations, locationId, checkoutAvailab
   const [brand, setBrand] = useState('');
   const [delivery, setDelivery] = useState('');
   const [bag, setBag] = useState({});
+  const [showOffers, setShowOffers] = useState(true);
   const [lastOrder, setLastOrder] = useState([]);
   const [shoppingNotice, setShoppingNotice] = useState('');
   const [bagLoaded, setBagLoaded] = useState(false);
@@ -53,6 +54,7 @@ export default function Store({ products, locations, locationId, checkoutAvailab
         typeof item?.id === 'string' && Number.isSafeInteger(item.quantity) &&
         item.quantity > 0 && item.quantity <= 99));
     } catch {}
+    try { setShowOffers(JSON.parse(localStorage.getItem('flickit.account-preferences') || '{}').showOffers !== false); } catch {}
     setBagLoaded(true);
   }, []);
   useEffect(() => {
@@ -115,7 +117,7 @@ export default function Store({ products, locations, locationId, checkoutAvailab
   }
 
   return <div className="store">
-    <StoreHeader count={count} homeHref={homeHref} bagHref={bagHref} accountButton={accountButton} />
+    <StoreHeader count={count} homeHref={homeHref} bagHref={bagHref} accountHref={accountHref} />
     <main>
       {demoFallback && <p className="catalogue-status" role="status">
         Showing the demo catalogue while the service reconnects. Checkout is unavailable.
@@ -155,11 +157,11 @@ export default function Store({ products, locations, locationId, checkoutAvailab
           <span aria-hidden="true">{icons[item] || '🛒'}</span>{item}
         </button>)}
       </nav>}
-      <section className="hero">
+      {showOffers && <section className="hero">
         <div><p>Flickit Grocery</p><h1>Everyday groceries,<br />delivered.</h1>
           <a className="shop-action" href="#browse">Shop groceries</a></div>
         <div className="hero-visual" aria-hidden="true"><span>🥑</span><span>🛍️</span><span>🍊</span></div>
-      </section>
+      </section>}
       {!catalogueState && categories.length > 1 && <section className="collections" aria-labelledby="collections-title">
         <div className="row"><h2 id="collections-title">Shop essentials</h2>
           {lastOrder.length > 0 && <button type="button" disabled={!bagLoaded} onClick={repeatOrder}>Order again</button>}
@@ -237,7 +239,12 @@ export default function Store({ products, locations, locationId, checkoutAvailab
                 onOrder={order => {
                   const items = order.items.map(({ id, quantity }) => ({ id, quantity }));
                   setLastOrder(items);
-                  try { sessionStorage.setItem(lastOrderKey, JSON.stringify(items)); } catch {}
+                  try {
+                    sessionStorage.setItem(lastOrderKey, JSON.stringify(items));
+                    sessionStorage.setItem('flickit.last-order-summary', JSON.stringify({
+                      reference: order.reference, totalPaise: order.totalPaise,
+                    }));
+                  } catch {}
                   setReceipt(order);
                   setBag({});
                 }} />}
@@ -254,9 +261,9 @@ export default function Store({ products, locations, locationId, checkoutAvailab
             </span>
             <span>{label}</span>
           </a>)}
-      <button type="button" aria-haspopup="dialog" onClick={() => accountButton.current?.click()}>
+      <a href={accountHref}>
         <span className="appbar-icon"><Icon name="user" /></span><span>Account</span>
-      </button>
+      </a>
     </nav>
   </div>;
 }

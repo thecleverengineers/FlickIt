@@ -20,13 +20,11 @@ export function Icon({ name }) {
   </svg>;
 }
 
-export default function StoreHeader({ count, customer, homeHref, bagHref, accountButton }) {
+export default function StoreHeader({ count, customer, homeHref, bagHref, accountHref }) {
   const dialog = useRef(null);
-  const [panel, setPanel] = useState('menu');
   const [opened, setOpened] = useState(false);
 
-  function open(next) {
-    setPanel(next);
+  function open() {
     dialog.current.showModal();
     setOpened(true);
   }
@@ -34,16 +32,16 @@ export default function StoreHeader({ count, customer, homeHref, bagHref, accoun
   return <>
     <header className="store-header" id="home">
       <button className="header-icon header-menu" type="button" aria-haspopup="dialog"
-          aria-controls="store-sidebar" aria-expanded={opened && panel === 'menu'}
-          aria-label="Open sidebar" onClick={() => open('menu')}><Icon name="menu" /></button>
+          aria-controls="store-sidebar" aria-expanded={opened}
+          aria-label="Open sidebar" onClick={open}><Icon name="menu" /></button>
       <a href={homeHref} className="brand"><img src="/flickit-logo.png" alt="Flickit" width="2172" height="724" /></a>
       <div className="header-actions">
         <a href={bagHref} className="header-icon header-bag" aria-label={`Shopping bag, ${count} items`}>
           <Icon name="bag" />{count > 0 && <span aria-hidden="true">{count}</span>}
         </a>
-        <button ref={accountButton} className="header-icon" type="button" aria-haspopup="dialog"
-          aria-label={customer ? 'Open profile' : 'Open guest account'}
-          onClick={() => open('account')}><Icon name={customer ? 'profile' : 'user'} /></button>
+        <a href={accountHref} className="header-icon" aria-label={customer ? 'Open profile' : 'Open account'}>
+          <Icon name={customer ? 'profile' : 'user'} />
+        </a>
       </div>
     </header>
     <dialog ref={dialog} id="store-sidebar" className="store-sidebar" aria-labelledby="sidebar-title"
@@ -51,18 +49,17 @@ export default function StoreHeader({ count, customer, homeHref, bagHref, accoun
       onClick={event => { if (event.target === event.currentTarget) dialog.current.close(); }}>
       <div className="sidebar-content">
         <div className="row">
-          <h2 id="sidebar-title">{panel === 'menu' ? 'Menu' : customer ? 'Your profile' : 'Guest account'}</h2>
+          <h2 id="sidebar-title">Menu</h2>
           <form method="dialog"><button className="header-icon" aria-label="Close sidebar">
             <Icon name="close" />
           </button></form>
         </div>
-        {panel === 'menu' ? <nav aria-label="Sidebar navigation">
+        <nav aria-label="Sidebar navigation">
           <a href={homeHref} onClick={() => dialog.current.close()}>Home</a>
           <a href={`${homeHref}#browse`} onClick={() => dialog.current.close()}>Browse groceries</a>
           <a href={bagHref} onClick={() => dialog.current.close()}>Shopping bag</a>
-          <button type="button" onClick={() => setPanel('account')}>{customer ? 'Your profile' : 'Guest account'}</button>
-        </nav> : customer ? <p>{customer.name}</p> :
-          <p>Customer sign-in is currently unavailable.</p>}
+          <a href={accountHref} onClick={() => dialog.current.close()}>Account</a>
+        </nav>
       </div>
     </dialog>
   </>;
