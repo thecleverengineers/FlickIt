@@ -1,5 +1,6 @@
 import { createHash, createHmac, randomBytes, randomInt } from 'node:crypto';
 import { database } from './database.js';
+import { sendDltOtp } from './fast2sms.js';
 
 const otpMinutes = 5;
 const sessionSeconds = 7 * 24 * 60 * 60;
@@ -8,9 +9,11 @@ const digestToken = token => createHash('sha256').update(token).digest('hex');
 
 export async function customerAuth(action, request, readBody) {
   const key = process.env.FAST2SMS_API_KEY;
-  const template = process.env.FAST2SMS_OTP_TEMPLATE_ID;
+  const sender = process.env.FAST2SMS_DLT_SENDER_ID || 'SECAST';
+  const message = process.env.FAST2SMS_DLT_MESSAGE_ID || '204252';
+  const variables = process.env.FAST2SMS_DLT_VARIABLES;
   const secret = process.env.CUSTOMER_OTP_SECRET;
-  if (!database || !key || !template || !secret || secret.length < 32) {
+  if (!database || !secret || secret.length < 32) {
     return [503, { error: 'Mobile sign-in is currently unavailable.' }];
   }
   const sessions = database.collection('customer_sessions');
@@ -40,6 +43,9 @@ export async function customerAuth(action, request, readBody) {
   const hashOtp = otp => createHmac('sha256', secret).update(`otp:${mobile}:${otp}`).digest('hex');
 
   if (action === 'request') {
+    if (!key || !variables?.split('|').includes('{otp}')) {
+      return [503, { error: 'Mobile sign-in is currently unavailable.' }];
+    }
     const otp = String(randomInt(0, 1000000)).padStart(6, '0');
     const digest = hashOtp(otp);
     const expiresAt = new Date(now.getTime() + otpMinutes * 60000);
@@ -62,14 +68,8 @@ export async function customerAuth(action, request, readBody) {
     if (!allowance.modifiedCount) return [429, { error: 'SMS capacity has been reached. Try again later.' }];
 
     try {
-      const response = await fetch('https://www.fast2sms.com/dev/otp/send', {
-        method: 'POST',
-        headers: { Authorization: key, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mobile, otp_id: template, otp, otp_expiry: otpMinutes, otp_length: 6 }),
-        redirect: 'error',
-        signal: AbortSignal.timeout(10000),
-      });
-      if (!response.ok) return [502, { error: 'The code could not be sent. Try again in a minute.' }];
+      const sent = await sendDltOtp({ key, sender, message, variables, mobile, otp });
+      if (!sent) return [502, { error: 'The code could not be sent. Try again in a minute.' }];
       return [200, { expiresIn: otpMinutes * 60, resendIn: 60 }];
     } catch {
       return [502, { error: 'The code could not be sent. Try again in a minute.' }];

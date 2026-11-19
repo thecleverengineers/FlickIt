@@ -78,10 +78,12 @@ live with real inventory.
 
 ## Customer mobile sign-in
 
-On the API service, configure a MongoDB connection, `FAST2SMS_API_KEY`,
-`FAST2SMS_OTP_TEMPLATE_ID` and a random `CUSTOMER_OTP_SECRET` of at least
-32 characters. Use an OTP template compatible with the Fast2SMS Send OTP
-endpoint. The optional `CUSTOMER_OTP_DAILY_LIMIT` caps daily send attempts
+On the API service, configure a MongoDB connection, `FAST2SMS_API_KEY`, a random
+`CUSTOMER_OTP_SECRET` of at least 32 characters, and `FAST2SMS_DLT_VARIABLES`.
+Set the last variable to the approved template's pipe-delimited values, in order.
+Use `{otp}` in the slot for Flickit's generated code. The DLT sender and
+message default to `SECAST` and `204252`; override them with
+`FAST2SMS_DLT_SENDER_ID` and `FAST2SMS_DLT_MESSAGE_ID` if needed. The optional `CUSTOMER_OTP_DAILY_LIMIT` caps daily send attempts
 and defaults to 100. Keep credentials in the API service environment.
 
 Create an `expiresAt` TTL index with `expireAfterSeconds: 0` on
