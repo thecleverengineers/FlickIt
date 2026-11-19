@@ -15,7 +15,7 @@ const lastOrderKey = 'flickit.last-order-items';
 const bagKey = 'flickit.shopping-bag';
 const price = paise => currency.format(paise / 100);
 
-export default function Store({ products, locations, locationId, checkoutAvailable, catalogueState, bagPage, categoriesPage, demoFallback, customer }) {
+export default function Store({ products, locations, locationId, checkoutAvailable, catalogueState, bagPage, categoriesPage, initialCategory, demoFallback, customer }) {
   const locationQuery = locationId ? `?${new URLSearchParams({ location: locationId })}` : '';
   const homeHref = `/${locationQuery}`;
   const categoriesHref = `/categories${locationQuery}`;
@@ -24,7 +24,8 @@ export default function Store({ products, locations, locationId, checkoutAvailab
 
   const [receipt, setReceipt] = useState(null);
   const [query, setQuery] = useState('');
-  const [category, setCategory] = useState('All');
+  const [category, setCategory] = useState(() => categoriesPage && products.some(product => product.category === initialCategory) ? initialCategory : 'All');
+  const [sort, setSort] = useState('');
   const [brand, setBrand] = useState('');
   const [delivery, setDelivery] = useState('');
   const [bag, setBag] = useState({});
@@ -59,13 +60,17 @@ export default function Store({ products, locations, locationId, checkoutAvailab
   const minimum = instantTimes.length ? Math.min(...instantTimes) : null;
   const maximum = instantTimes.length ? Math.max(...instantTimes) : null;
   const instantEstimate = minimum === null ? '' : minimum === maximum ? `${minimum} min` : `${minimum}–${maximum} min`;
-  const brands = [...new Set(products.map(product => product.brand).filter(Boolean))];
-  const visible = products.filter(product =>
-    (category === 'All' || product.category === category) &&
+  const categoryProducts = category === 'All' ? products : products.filter(product => product.category === category);
+  const categoryDetail = categoriesPage && category !== 'All' && !catalogueState;
+  const brands = [...new Set(categoryProducts.map(product => product.brand).filter(Boolean))];
+  const visible = categoryProducts.filter(product =>
     (!brand || product.brand === brand) &&
     (!delivery || (delivery === 'instant' ? product.instantMinutes != null : product.shipping)) &&
     [product.name, product.brand, product.variety, product.seller, product.description].filter(Boolean)
       .some(value => value.toLowerCase().includes(query.trim().toLowerCase())));
+  if (sort === 'price-low') visible.sort((a, b) => a.pricePaise - b.pricePaise);
+  if (sort === 'price-high') visible.sort((a, b) => b.pricePaise - a.pricePaise);
+  const categoryHref = item => `/categories?${new URLSearchParams({ category: item, ...(locationId ? { location: locationId } : {}) })}`;
   const selected = products.filter(product => !product.preview && bag[product.id]);
   const count = Object.values(bag).reduce((sum, quantity) => sum + quantity, 0);
   const availableIds = new Set(selected.map(product => product.id));
@@ -88,6 +93,10 @@ export default function Store({ products, locations, locationId, checkoutAvailab
   }
 
   function browseCategory(next) {
+    if (next !== 'All') {
+      window.location.assign(categoryHref(next));
+      return;
+    }
     setCategory(next);
     setBrand('');
     setDelivery('');
@@ -113,26 +122,30 @@ export default function Store({ products, locations, locationId, checkoutAvailab
       : 'Available items from your last order were added to your bag.');
   }
 
-  return <div className={bagPage ? "store bag-store" : categoriesPage ? "store categories-store" : "store"}>
+  return <div className={bagPage ? "store bag-store" : categoryDetail ? "store categories-store category-detail-store" : categoriesPage ? "store categories-store" : "store"}>
     {bagPage ? <header className="checkout-bar">
       <a href={homeHref} aria-label="Back to shop">←</a>
       <strong>Checkout</strong>
       <a href={`${homeHref}#browse`} aria-label="Browse products"><Icon name="browse" /></a>
       {bagLoaded && typeof navigator !== 'undefined' && navigator.share && <button type="button"
         onClick={() => navigator.share({ title: 'Flickit', url: window.location.origin }).catch(() => {})}>Share</button>}
+    </header> : categoryDetail ? <header className="checkout-bar category-detail-bar">
+      <a href={categoriesHref} aria-label="Back to categories">←</a>
+      <div><strong>{category}</strong><small>{area ? `Delivering to ${area.name}` : 'Browse available products'}</small></div>
+      <a href="#category-search" aria-label="Search this category">⌕</a>
     </header> : <StoreHeader customer={customer} count={count} homeHref={homeHref} bagHref={bagHref} accountHref={accountHref} />}
     <main>
       {demoFallback && <p className="catalogue-status" role="status">
         Showing the demo catalogue while the service reconnects. Checkout is unavailable.
       </p>}
-      {!bagPage && <section className="delivery-summary" aria-label="Delivery estimate">
+      {!bagPage && !categoryDetail && <section className="delivery-summary" aria-label="Delivery estimate">
         <div><p>{area ? 'Delivering to' : 'Delivery location'}</p>
           <strong>{area?.name || 'Choose your area'}</strong></div>
         {instantEstimate && <div className="delivery-estimate"><strong>{instantEstimate}</strong><span>Instant delivery estimate</span></div>}
         {area && !instantEstimate && products.some(product => product.shipping) &&
           <div className="delivery-estimate"><span>Standard shipping available</span></div>}
       </section>}
-      {locations.length > 0 && <form className="location-form" action={bagPage ? "/bag" : categoriesPage ? "/categories" : "/"}>
+      {!categoryDetail && locations.length > 0 && <form className="location-form" action={bagPage ? "/bag" : categoriesPage ? "/categories" : "/"}>
         <label htmlFor="location">Delivery location</label>
         <select id="location" name="location" defaultValue={locationId}>
           <option value="">Browse all locations</option>
@@ -143,13 +156,13 @@ export default function Store({ products, locations, locationId, checkoutAvailab
         <button type="submit">Update</button>
       </form>}
       {!bagPage && <>
-      {categoriesPage && <h1 className="categories-title">Categories</h1>}
-      <div className="store-search">
+      {categoriesPage && !categoryDetail && <h1 className="categories-title">Categories</h1>}
+      <div className="store-search" id="category-search">
         <span aria-hidden="true">⌕</span>
         <input type="search" aria-label="Search groceries" placeholder="Search groceries"
           disabled={Boolean(catalogueState)} value={query} onChange={event => setQuery(event.target.value)} />
         <VoiceSearch disabled={Boolean(catalogueState)} onSearch={transcript => {
-          setCategory('All');
+          if (!categoryDetail) setCategory('All');
           setBrand('');
           setDelivery('');
           setQuery(transcript);
@@ -187,19 +200,28 @@ export default function Store({ products, locations, locationId, checkoutAvailab
         </div>
       </section>}
       {categoriesPage && !catalogueState && category === 'All' && !query.trim() && categories.length > 1 &&
-        <CategoryDirectory categories={categories.slice(1)} products={products} onSelect={item => setCategory(item)} />}
+        <CategoryDirectory categories={categories.slice(1)} products={products} onSelect={browseCategory} />}
       {(!categoriesPage || catalogueState || category !== 'All' || query.trim() || categories.length === 1) &&
-      <section id="browse" aria-labelledby="browse-title">
-      <h2 id="browse-title">{categoriesPage && category !== 'All' ? category : categoriesPage && query.trim() ? 'Search results' : 'Shop by category'}</h2>
-      {categoriesPage && (category !== 'All' || query.trim()) && <button type="button" onClick={() => {
+      <section id="browse" aria-labelledby="browse-title" className={categoryDetail ? 'category-detail-layout' : undefined}>
+      {categoryDetail && <nav className="category-side-rail" aria-label="Categories">
+        {categories.slice(1).map(item => <a href={categoryHref(item)} key={item} aria-current={category === item ? 'page' : undefined}>
+          <CategoryIcon name={item} /><span>{item}</span>
+        </a>)}
+      </nav>}
+      <div className={categoryDetail ? 'category-detail-results' : undefined}>
+      <h2 id="browse-title" className={categoryDetail ? "category-detail-title" : undefined}>{categoriesPage && category !== 'All' ? category : categoriesPage && query.trim() ? 'Search results' : 'Shop by category'}</h2>
+      {categoriesPage && !categoryDetail && (category !== 'All' || query.trim()) && <button type="button" onClick={() => {
         setCategory('All'); setQuery(''); setBrand(''); setDelivery('');
       }}>← All categories</button>}
       {catalogueState ? <CatalogueStatus state={catalogueState} /> : <>
-      <nav className="category-nav" aria-label="Product categories">{categories.map(item =>
-        <button key={item} aria-pressed={category === item} onClick={() => setCategory(item)}>
+      {!categoryDetail && <nav className="category-nav" aria-label="Product categories">{categories.map(item =>
+        <button key={item} aria-pressed={category === item} onClick={() => browseCategory(item)}>
           <span aria-hidden="true">{icons[item] || '🛒'}</span>{item}</button>
-      )}</nav>
+      )}</nav>}
       <div className="filters">
+        {categoryDetail && <label>Sort <select value={sort} onChange={event => setSort(event.target.value)}>
+          <option value="">Recommended</option><option value="price-low">Price low to high</option><option value="price-high">Price high to low</option>
+        </select></label>}
         {brands.length > 0 && <label>Brand <select value={brand} onChange={event => setBrand(event.target.value)}>
           <option value="">All brands</option>
           {brands.map(item => <option key={item}>{item}</option>)}
@@ -236,6 +258,7 @@ export default function Store({ products, locations, locationId, checkoutAvailab
       </section>
       {visible.length === 0 && <p>{products.length ? 'No groceries match your search.' : 'No groceries are available here yet.'}</p>}
       </>}
+      </div>
       </section>}
       </>}
       {bagPage && <section className="bag-page" aria-labelledby="bag-title">
