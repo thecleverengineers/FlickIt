@@ -56,7 +56,7 @@ export default function StoreHeader({ count, customer, homeHref, bagHref, accoun
         </div>
         <nav aria-label="Sidebar navigation">
           <a href={homeHref} onClick={() => dialog.current.close()}>Home</a>
-          <a href={`${homeHref}#browse`} onClick={() => dialog.current.close()}>Browse groceries</a>
+          <a href={`/categories${homeHref.slice(1)}`} onClick={() => dialog.current.close()}>Categories</a>
           <a href={bagHref} onClick={() => dialog.current.close()}>Shopping bag</a>
           <a href={accountHref} onClick={() => dialog.current.close()}>Account</a>
         </nav>
