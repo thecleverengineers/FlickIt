@@ -111,7 +111,10 @@ export default function Account({ homeHref, bagHref, loginHref, customer = null,
                     dateStyle: 'medium', timeZone: 'Asia/Kolkata',
                   }).format(new Date(createdAt))}</time>}
                 </div>
-                <span className="order-status">{receipt.status.replaceAll('_', ' ')}</span>
+                <div className="order-header-meta">
+                  <span className="order-status">{receipt.status.replaceAll('_', ' ')}</span>
+                  <strong aria-label={`Order total ${money.format(receipt.totalPaise / 100)}`}>{money.format(receipt.totalPaise / 100)}</strong>
+                </div>
               </header>
               <ul className="order-photo-strip" tabIndex={0} aria-label="Ordered products">
                 {(receipt.items ?? []).map(item => <li key={item.id} className="order-photo" title={item.name}>
@@ -119,7 +122,6 @@ export default function Account({ homeHref, bagHref, loginHref, customer = null,
                     : <span role="img" aria-label={item.name}><Icon name="bag" /></span>}
                 </li>)}
               </ul>
-              <footer><span>Order total</span><strong>{money.format(receipt.totalPaise / 100)}</strong></footer>
               <details className="order-reference"><summary>Order reference</summary><p>{receipt.reference}</p>
               <ul className="order-products">{(receipt.items ?? []).map(item => <li key={item.id}>
                 <div><strong>{item.name}</strong>
