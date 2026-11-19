@@ -56,3 +56,10 @@
 .otp-form label { display: grid; gap: 6px; }
 .otp-form input { width: 100%; }
 .otp-form button:disabled { opacity: .6; cursor: default; }
+
+.account-section-title { margin: 12px 0 18px; }
+.account-subpage .account-group:not(:has(.account-detail-body)),
+.account-subpage .account-group > h2,
+.account-subpage .account-shortcuts { display: none; }
+.account-subpage .account-detail-body { padding: 16px; }
+.account-subpage .account-detail-body label { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
