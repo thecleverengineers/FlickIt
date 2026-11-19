@@ -229,7 +229,7 @@ export default function Account({ homeHref, bagHref, loginHref, customer = null,
     <nav className="bottom-appbar" aria-label="Shopping shortcuts">
       <a href={homeHref}><span className="appbar-icon"><Icon name="home" /></span><span>Home</span></a>
       <a href={bagHref}><span className="appbar-icon"><Icon name="bag" /></span><span>Bag</span></a>
-      <a href={`${homeHref}#browse`}><span className="appbar-icon"><Icon name="browse" /></span><span>Categories</span></a>
+      <a href={`/categories${query}`}><span className="appbar-icon"><Icon name="browse" /></span><span>Categories</span></a>
       <a href={accountHref} aria-current="page"><span className="appbar-icon"><Icon name="user" /></span><span>Account</span></a>
     </nav>
   </div>;
