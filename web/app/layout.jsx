@@ -5,3 +5,5 @@ export const metadata = { title: 'Flickit', description: 'Everyday groceries in 
 export default function Layout({ children }) {
   return <html lang="en"><body>{children}</body></html>;
 }
+
+export const viewport = { viewportFit: 'cover' };

@@ -3,6 +3,8 @@
 import { useRef, useState } from 'react';
 
 const paths = {
+  home: 'm3 11 9-8 9 8M5 10v11h5v-6h4v6h5V10',
+  browse: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z',
   bag: 'M5 8h14l1 13H4L5 8Zm4 1V6a3 3 0 0 1 6 0v3',
   user: 'M16 8a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM5 20v-2a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v2',
   profile: 'M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0ZM15 9a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM6 19a6 6 0 0 1 12 0',
@@ -10,7 +12,7 @@ const paths = {
   close: 'm6 6 12 12M18 6 6 18',
 };
 
-function Icon({ name }) {
+export function Icon({ name }) {
   return <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none"
     stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round">
     <path d={paths[name]} />

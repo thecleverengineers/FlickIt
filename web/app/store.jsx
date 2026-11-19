@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Checkout from './checkout';
-import StoreHeader from './store-header';
+import StoreHeader, { Icon } from './store-header';
 import CatalogueStatus from './catalogue-status';
 
 const currency = new Intl.NumberFormat('en-IN', { currency: 'INR', style: 'currency' });
@@ -11,6 +11,17 @@ const productIcons = { banana: '🍌', tomato: '🍅', milk: '🥛', curd: '🥣
 const price = paise => currency.format(paise / 100);
 
 export default function Store({ products, locations, locationId, checkoutAvailable, catalogueState }) {
+  const [shortcut, setShortcut] = useState('home');
+  useEffect(() => {
+    function readShortcut() {
+      const hash = window.location.hash.slice(1);
+      setShortcut(['browse', 'bag'].includes(hash) ? hash : 'home');
+    }
+    readShortcut();
+    window.addEventListener('hashchange', readShortcut);
+    return () => window.removeEventListener('hashchange', readShortcut);
+  }, []);
+
   const [receipt, setReceipt] = useState(null);
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('All');
@@ -106,8 +117,15 @@ export default function Store({ products, locations, locationId, checkoutAvailab
         </>}
       </section>
     </main>
-    <nav className="shopping-dock" aria-label="Shopping shortcuts">
-      <a href="#home">Home</a><a href="#browse">Browse</a><a href="#bag">Bag ({count})</a>
+    <nav className="bottom-appbar" aria-label="Shopping shortcuts">
+      {[['home', 'Home'], ['browse', 'Browse'], ['bag', 'Bag']].map(([id, label]) =>
+        <a href={`#${id}`} key={id} aria-current={shortcut === id ? 'location' : undefined}
+          aria-label={id === 'bag' ? `Bag, ${count} items` : undefined}>
+          <span className="appbar-icon"><Icon name={id} />
+            {id === 'bag' && count > 0 && <span className="appbar-count" aria-hidden="true">{count}</span>}
+          </span>
+          <span>{label}</span>
+        </a>)}
     </nav>
   </div>;
 }
