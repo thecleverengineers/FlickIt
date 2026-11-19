@@ -1,22 +1,47 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { sectionSlug } from './sections';
 import { Icon } from '../store-header';
 
 const preferencesKey = 'flickit.account-preferences';
 const defaults = { birthday: '', appearance: 'system', showOffers: true };
 const money = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' });
 
-function Detail({ title, children }) {
-  return <details className="account-detail"><summary>{title}</summary>
-    <div className="account-detail-body">{children}</div>
-  </details>;
-}
-
-export default function Account({ homeHref, bagHref, loginHref, customer = null, orders = null }) {
+export default function Account({ homeHref, bagHref, loginHref, customer = null, orders = null, section, sectionTitle }) {
+  const query = homeHref.slice(1);
+  const accountHref = `/account${query}`;
+  const detailHref = title => `/account/${sectionSlug(title)}${query}`;
+  const detail = (title, children, label = title) => {
+    if (section) return sectionSlug(title) === section
+      ? <div className="account-detail-body">{children}</div>
+      : null;
+    return <a className="account-row" href={detailHref(title)}>{label}<span aria-hidden="true">›</span></a>;
+  };
   const birthdayKey = customer ? `flickit.birthday.${customer.id}` : null;
   const [preferences, setPreferences] = useState(defaults);
   const [notice, setNotice] = useState('');
+  const addressKey = customer ? `flickit.addresses.${customer.id}` : null;
+  const [addresses, setAddresses] = useState([]);
+
+  useEffect(() => {
+    if (!addressKey || section !== 'address-book') return;
+    try {
+      const saved = JSON.parse(localStorage.getItem(addressKey) || '[]');
+      if (Array.isArray(saved)) setAddresses(saved.filter(address => typeof address === 'string'));
+    } catch {}
+  }, [addressKey, section]);
+
+  function saveAddresses(next) {
+    try {
+      localStorage.setItem(addressKey, JSON.stringify(next));
+      setAddresses(next);
+      return true;
+    } catch {
+      setNotice('Your browser couldn’t save your addresses.');
+      return false;
+    }
+  }
 
   useEffect(() => {
     try {
@@ -44,7 +69,7 @@ export default function Account({ homeHref, bagHref, loginHref, customer = null,
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
       });
       if (!response.ok) throw new Error();
-      window.location.reload();
+      window.location.assign(accountHref);
     } catch {
       setNotice('Could not sign out. Try again.');
     }
@@ -63,102 +88,118 @@ export default function Account({ homeHref, bagHref, loginHref, customer = null,
     }
   }
 
-  return <div className={`store account-page theme-${preferences.appearance}`}>
+  return <div className={`store account-page ${section ? "account-subpage" : ""} theme-${preferences.appearance}`}>
     <main>
-      <a className="account-back" href={homeHref}>← Back to shopping</a>
-      <section className="account-hero">
+      <a className="account-back" href={section ? accountHref : homeHref}>{section ? "← Back to account" : "← Back to shopping"}</a>
+      {section ? <h1 className="account-section-title">{sectionTitle}</h1> : <section className="account-hero">
         <span className="account-avatar"><Icon name={customer ? "profile" : "user"} /></span>
         <h1>Your account</h1>
         <p>{customer ? `+91 ${customer.mobile}` : "Log in to view your complete profile"}</p>
-      </section>
+      </section>}
       {customer ? <>
       <section className="account-group">
-        <Detail title={preferences.birthday ? 'Edit your birthday' : 'Add your birthday'}>
+        {detail('Birthday', <>
           <label>Birthday <input type="date" value={preferences.birthday}
             onChange={event => save('birthday', event.target.value)} /></label>
-        </Detail>
-        <Detail title="Your orders">
+        </>, preferences.birthday ? 'Edit your birthday' : 'Add your birthday')}
+        {detail('Your orders', <>
           {orders === null ? <p>Order history is temporarily unavailable.</p> :
             orders.length ? <ul>{orders.map(({ receipt }) => <li key={receipt.reference}>
               <p><strong>{receipt.reference}</strong> · {receipt.status} · {money.format(receipt.totalPaise / 100)}</p>
             </li>)}</ul> : <p>No confirmed orders on your account yet.</p>}
-        </Detail>
-        <Detail title="Need help?"><p>Review your delivery area and items in <a href={bagHref}>your bag</a>.</p></Detail>
-        <Detail title="Appearance">
+        </>)}
+        {detail('Need help?', <><p>Review your delivery area and items in <a href={bagHref}>your bag</a>.</p></>)}
+        {detail('Appearance', <>
           <label>Account theme <select value={preferences.appearance}
             onChange={event => save('appearance', event.target.value)}>
             <option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option>
           </select></label>
-        </Detail>
-        <Detail title="Content preferences">
+        </>)}
+        {detail('Content preferences', <>
           <label><input type="checkbox" checked={preferences.showOffers}
             onChange={event => save('showOffers', event.target.checked)} /> Show the promotional banner on Home</label>
-        </Detail>
+        </>)}
       </section>
       <section className="account-group"><h2>Your information</h2>
-        <a className="account-row" href={`${homeHref}#location`}>Delivery area <span aria-hidden="true">›</span></a>
-        <Detail title="Address book"><p>Saved addresses will be available with customer accounts.</p></Detail>
-        <Detail title="Your wishlist"><p>Wishlist syncing is unavailable during the preview.</p></Detail>
-        <Detail title="Bookmarked recipes"><p>Recipe bookmarks are unavailable during the preview.</p></Detail>
-        <Detail title="GST details"><p>GST billing details are unavailable during the preview.</p></Detail>
-        <Detail title="E-gift cards"><p>Gift card purchases are not open yet.</p></Detail>
-        <Detail title="Your prescriptions"><p>Prescription uploads are unavailable.</p></Detail>
+        {detail('Delivery area', <a href={`${homeHref}#location`}>Choose a delivery area</a>)}
+        {detail('Address book', <><p>Save delivery addresses on this device.</p>
+          {addresses.length > 0 && <ul>{addresses.map(address => <li key={address}>
+            <p>{address}</p>
+            <button type="button" onClick={() => navigator.clipboard.writeText(address)
+              .then(() => setNotice('Address copied.')).catch(() => setNotice('Could not copy the address.'))}>Copy</button>
+            <button type="button" onClick={() => saveAddresses(addresses.filter(value => value !== address))}>Remove</button>
+          </li>)}</ul>}
+          <form onSubmit={event => {
+            event.preventDefault();
+            const form = event.currentTarget;
+            const address = new FormData(form).get('address').trim();
+            if (address.length >= 10 && !addresses.includes(address) && saveAddresses([...addresses, address])) form.reset();
+          }}>
+            <label>Delivery address <input name="address" autoComplete="street-address" minLength={10} maxLength={400} required /></label>
+            <button>Save address</button>
+          </form></>)}
+        {detail('Your wishlist', <><p>Wishlist syncing is unavailable during the preview.</p></>)}
+        {detail('Bookmarked recipes', <><p>Recipe bookmarks are unavailable during the preview.</p></>)}
+        {detail('GST details', <><p>GST billing details are unavailable during the preview.</p></>)}
+        {detail('E-gift cards', <><p>Gift card purchases are not open yet.</p></>)}
+        {detail('Your prescriptions', <><p>Prescription uploads are unavailable.</p></>)}
       </section>
       <section className="account-group"><h2>Payments and rewards</h2>
-        <Detail title="Payment settings"><p>Payment options are shown at checkout when ordering is available.</p></Detail>
-        <Detail title="Flickit Money"><p>The Flickit wallet is unavailable during the preview.</p></Detail>
-        <Detail title="Claim gift card"><p>Gift card redemption is unavailable during the preview.</p></Detail>
-        <Detail title="Collected rewards"><p>Flickit has no active rewards programme.</p></Detail>
+        {detail('Payment settings', <><p>Cash on delivery is available in supported delivery areas.</p><a href={bagHref}>Review payment at checkout</a></>)}
+        {detail('Flickit Money', <><p>The Flickit wallet is unavailable during the preview.</p></>)}
+        {detail('Claim gift card', <><p>Gift card redemption is unavailable during the preview.</p></>)}
+        {detail('Collected rewards', <><p>Flickit has no active rewards programme.</p></>)}
       </section>
       <section className="account-group"><h2>Community</h2>
-        <Detail title="Community impact"><p>Flickit has no active community programmes listed.</p></Detail>
-        <Detail title="Donation receipts"><p>Flickit does not accept donations during the preview.</p></Detail>
+        {detail('Community impact', <><p>Flickit has no active community programmes listed.</p></>)}
+        {detail('Donation receipts', <><p>Flickit does not accept donations during the preview.</p></>)}
       </section>
       <section className="account-group"><h2>About Flickit</h2>
-        <button className="account-row" type="button" onClick={share}>Share Flickit <span aria-hidden="true">›</span></button>
-        <Detail title="About us"><p>Flickit is a grocery marketplace for browsing local delivery options.</p></Detail>
-        <Detail title="Sell on Flickit"><p>Public seller applications are closed during the preview.</p></Detail>
-        <Detail title="Account privacy"><p>Birthday and display preferences stay in this browser. Orders placed while signed in are stored in your Flickit account.</p>
+        {detail('Share Flickit', <button type="button" onClick={share}>Share storefront link</button>)}
+        {detail('About us', <><p>Flickit is a grocery marketplace for browsing local delivery options.</p></>)}
+        {detail('Sell on Flickit', <><p>Public seller applications are closed during the preview.</p></>)}
+        {detail('Account privacy', <><p>Birthday and display preferences stay in this browser. Orders placed while signed in are stored in your Flickit account.</p>
           <button type="button" onClick={() => {
             try {
               localStorage.removeItem(preferencesKey);
               if (birthdayKey) localStorage.removeItem(birthdayKey);
+              if (addressKey) localStorage.removeItem(addressKey);
               sessionStorage.removeItem("flickit.last-order-items");
               setPreferences(defaults);
               setNotice('Local account preferences and reorder items were cleared.');
             } catch { setNotice('Your browser couldn’t clear this information.'); }
           }}>Clear account data on this device</button>
-        </Detail>
-        <Detail title="Notification preferences"><p>Flickit does not send account notifications during the preview.</p></Detail>
-        <Detail title="Beta programme"><p>Public beta enrolment is unavailable.</p></Detail>
+        </>)}
+        {detail('Notification preferences', <><p>Flickit does not send account notifications during the preview.</p></>)}
+        {detail('Beta programme', <><p>Public beta enrolment is unavailable.</p></>)}
       </section>
       <section className="account-group">
-        <button type="button" className="account-row" onClick={logout}>Log out <span aria-hidden="true">›</span></button>
+        {detail('Log out', <button type="button" onClick={logout}>Confirm log out</button>)}
       </section>
       </> : <>
-        <a href={loginHref} className="account-continue">Continue</a>
+        {!section && <a href={loginHref} className="account-continue">Continue</a>}
         <div className="account-shortcuts">
           <a href={loginHref}><Icon name="bag" />Your orders</a>
           <a href={loginHref}><Icon name="profile" />Flickit Money</a>
-          <a href="#account-help"><Icon name="user" />Need help?</a>
+          <a href={detailHref("Need help?")}><Icon name="user" />Need help?</a>
         </div>
         <section className="account-group">
-          <Detail title="Appearance">
+          {detail('Appearance', <>
             <label>Account theme <select value={preferences.appearance}
               onChange={event => save('appearance', event.target.value)}>
               <option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option>
             </select></label>
-          </Detail>
+          </>)}
         </section>
         <section className="account-group"><h2>Your information</h2>
           <a className="account-row" href={loginHref}>Address book <span aria-hidden="true">›</span></a>
         </section>
         <section className="account-group" id="account-help"><h2>Other information</h2>
-          <Detail title="Need help?"><p>For shopping and delivery options, visit <a href={bagHref}>your bag</a>.</p></Detail>
-          <button className="account-row" type="button" onClick={share}>Share Flickit <span aria-hidden="true">›</span></button>
-          <Detail title="About us"><p>Flickit is a grocery marketplace for browsing local delivery options.</p></Detail>
-          <Detail title="Sell on Flickit"><p>Public seller applications are closed during the preview.</p></Detail>
-          <Detail title="Manage beta programme"><p>Public beta enrolment is unavailable.</p></Detail>
+          {detail('Need help?', <><p>For shopping and delivery options, visit <a href={bagHref}>your bag</a>.</p></>)}
+          {detail('Share Flickit', <button type="button" onClick={share}>Share storefront link</button>)}
+          {detail('About us', <><p>Flickit is a grocery marketplace for browsing local delivery options.</p></>)}
+          {detail('Sell on Flickit', <><p>Public seller applications are closed during the preview.</p></>)}
+          {detail('Beta programme', <><p>Public beta enrolment is unavailable.</p></>)}
         </section>
       </>}
       {notice && <p className="account-notice" role="status">{notice}</p>}
@@ -167,7 +208,7 @@ export default function Account({ homeHref, bagHref, loginHref, customer = null,
       <a href={homeHref}><span className="appbar-icon"><Icon name="home" /></span><span>Home</span></a>
       <a href={bagHref}><span className="appbar-icon"><Icon name="bag" /></span><span>Bag</span></a>
       <a href={`${homeHref}#browse`}><span className="appbar-icon"><Icon name="browse" /></span><span>Categories</span></a>
-      <a href="#top" aria-current="page"><span className="appbar-icon"><Icon name="user" /></span><span>Account</span></a>
+      <a href={accountHref} aria-current="page"><span className="appbar-icon"><Icon name="user" /></span><span>Account</span></a>
     </nav>
   </div>;
 }
