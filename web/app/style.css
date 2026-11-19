@@ -242,3 +242,21 @@ select { max-width: 100%; padding: 8px; min-height: 42px; background: white; col
 .checkout-dock strong, .checkout-dock small { display: block; }
 .checkout-dock a, .checkout-dock button { min-height: 44px; display: grid; place-items: center; padding: 8px 16px; border: 0; border-radius: 12px; background: #873621; color: white; text-decoration: none; font-weight: 700; }
 .checkout-dock button:disabled { background: #f4e9e4; color: #66483e; opacity: 1; }
+
+.categories-store { background: #fffdf9; }
+.categories-store main { padding-bottom: calc(154px + env(safe-area-inset-bottom)); }
+.categories-title { margin: 18px 0 10px; font-size: clamp(1.7rem, 5vw, 2.4rem); letter-spacing: -.035em; }
+.categories-store .delivery-summary { background: linear-gradient(110deg, #fff0ce, #fff7e6); }
+.category-directory { display: grid; gap: 26px; margin-top: 20px; }
+.category-directory h2 { margin: 0 0 13px; font-size: clamp(1.12rem, 4vw, 1.5rem); letter-spacing: -.02em; }
+.directory-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px 8px; }
+.store .directory-grid button { display: grid; grid-template-rows: auto 1fr; align-items: start; gap: 6px; min-width: 0; border: 0; background: transparent; padding: 0; color: var(--ink); border-radius: 14px; text-align: center; }
+.directory-photo { display: grid; place-items: center; aspect-ratio: 1.08; border-radius: 14px; background: #e6f2ef; overflow: hidden; }
+.directory-photo img { display: block; width: 100%; height: 100%; min-height: 0; object-fit: contain; padding: 6px; }
+.directory-label { font-size: clamp(.73rem, 3vw, 1rem); font-weight: 650; line-height: 1.25; overflow-wrap: anywhere; }
+.directory-grid button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.category-view-bag { position: fixed; z-index: 5; bottom: calc(76px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; border-radius: 32px; padding: 9px 16px; background: #873621; color: white; box-shadow: 0 5px 16px #55312132; text-decoration: none; white-space: nowrap; }
+.category-view-bag small { display: block; }
+@media (min-width: 760px) {
+  .directory-grid { grid-template-columns: repeat(4, minmax(0, 155px)); gap: 18px; }
+}
