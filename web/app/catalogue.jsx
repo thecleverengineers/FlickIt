@@ -10,52 +10,54 @@ async function getApi(path, timeout, params) {
     ? { next: { revalidate: 60 } }
     : { cache: 'no-store' };
   const deadline = Date.now() + timeout;
-  for (const attemptTimeout of [Math.min(8000, timeout), timeout]) {
+  let delay = 1000;
+  let failure;
+  while (Date.now() < deadline) {
     try {
       const response = await fetch(url, {
-        ...options, signal: AbortSignal.timeout(Math.max(1, Math.min(attemptTimeout, deadline - Date.now()))),
+        ...options, signal: AbortSignal.timeout(Math.max(1, deadline - Date.now())),
       });
       if (response.ok) return await response.json();
-      if (response.status < 500 || Date.now() >= deadline) {
-        throw new Error(`Catalogue API returned HTTP ${response.status}`);
-      }
+      if (path === '/v1/products' && params?.has('location') && response.status === 400) return null;
+      failure = new Error(`Catalogue API returned HTTP ${response.status}`);
+      if (response.status < 500 && response.status !== 429) break;
     } catch (error) {
-      if (attemptTimeout === timeout || Date.now() >= deadline) throw error;
+      failure = error;
     }
+    const remaining = deadline - Date.now();
+    if (remaining <= delay) break;
+    await new Promise(resolve => setTimeout(resolve, delay));
+    delay = Math.min(delay * 2, 8000);
   }
-  throw new Error('Catalogue API unavailable');
+  throw failure ?? new Error('Catalogue API unavailable');
 }
 
 async function Catalogue({ searchParams, bagPage, categoriesPage }) {
   const allowDemoFallback = process.env.FLICKIT_DEMO_CATALOGUE_FALLBACK === 'true';
-  const timeout = allowDemoFallback ? 3500 : 55000;
+  const timeout = allowDemoFallback ? 3500 : 65000;
   let locations = [];
   let current = '';
   const { location, category } = await searchParams;
-  const customer = await getCustomer();
+  const customerRequest = getCustomer();
   try {
-    const marketplaceRequest = getApi('/v1/marketplace', Math.min(timeout, 8000)).catch(error => {
+    const requestedLocation = typeof location === 'string' ? location : '';
+    const params = requestedLocation ? new URLSearchParams({ location: requestedLocation }) : undefined;
+    const marketplaceRequest = getApi('/v1/marketplace', timeout).catch(error => {
       console.warn('Marketplace settings unavailable:', error.message);
       return { locations: [], checkoutAvailable: false };
     });
-    let products;
-    let marketplace;
-    if (typeof location === 'string' && location) {
-      marketplace = await marketplaceRequest;
-      locations = marketplace.locations;
-      current = locations.find(area => area.id === location)?.id || '';
-      const params = new URLSearchParams(current ? { location: current } : {});
-      ({ products } = await getApi('/v1/products', timeout, params));
-    } else {
-      [marketplace, { products }] = await Promise.all([
-        marketplaceRequest, getApi('/v1/products', timeout),
-      ]);
-      locations = marketplace.locations;
-    }
+    const productsRequest = getApi('/v1/products', timeout, params).then(result =>
+      result ?? getApi('/v1/products', timeout));
+    const [marketplace, { products }, customer] = await Promise.all([
+      marketplaceRequest, productsRequest, customerRequest,
+    ]);
+    locations = marketplace.locations;
+    current = locations.find(area => area.id === requestedLocation)?.id || '';
     return <Store customer={customer} bagPage={bagPage} categoriesPage={categoriesPage} initialCategory={category} key={current} products={products} locations={locations}
       locationId={current} checkoutAvailable={marketplace.checkoutAvailable} />;
   } catch (error) {
     console.warn('Product catalogue unavailable:', error.message);
+    const customer = await customerRequest;
     if (allowDemoFallback) {
       const demoLocation = demoMarketplace.locations.find(area => area.id === location)?.id || '';
       return <Store customer={customer} bagPage={bagPage} categoriesPage={categoriesPage} initialCategory={category} key={demoLocation} products={getCatalogue(demoMarketplace, demoLocation)}
