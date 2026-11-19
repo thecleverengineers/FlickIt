@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import { demoMarketplace, getCatalogue } from '../../api/marketplace';
 import Store from './store';
 
 async function getApi(path, signal, params) {
@@ -10,7 +11,8 @@ async function getApi(path, signal, params) {
 }
 
 async function Catalogue({ searchParams, bagPage }) {
-  const signal = AbortSignal.timeout(45000);
+  const allowDemoFallback = process.env.FLICKIT_DEMO_CATALOGUE_FALLBACK === 'true';
+  const signal = AbortSignal.timeout(allowDemoFallback ? 3500 : 45000);
   let locations = [];
   let current = '';
   const { location } = await searchParams;
@@ -33,6 +35,11 @@ async function Catalogue({ searchParams, bagPage }) {
     return <Store bagPage={bagPage} key={current} products={products} locations={locations}
       locationId={current} checkoutAvailable={marketplace.checkoutAvailable} />;
   } catch {
+    if (allowDemoFallback) {
+      const demoLocation = demoMarketplace.locations.find(area => area.id === location)?.id || '';
+      return <Store bagPage={bagPage} key={demoLocation} products={getCatalogue(demoMarketplace, demoLocation)}
+        locations={demoMarketplace.locations} locationId={demoLocation} checkoutAvailable={false} demoFallback />;
+    }
     return <Store bagPage={bagPage} products={[]} locations={locations} locationId={current || (typeof location === 'string' ? location : '')} catalogueState="unavailable" />;
   }
 }

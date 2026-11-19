@@ -13,7 +13,7 @@ const lastOrderKey = 'flickit.last-order-items';
 const bagKey = 'flickit.shopping-bag';
 const price = paise => currency.format(paise / 100);
 
-export default function Store({ products, locations, locationId, checkoutAvailable, catalogueState, bagPage }) {
+export default function Store({ products, locations, locationId, checkoutAvailable, catalogueState, bagPage, demoFallback }) {
   const [shortcut, setShortcut] = useState('home');
   useEffect(() => {
     function readShortcut() {
@@ -117,6 +117,9 @@ export default function Store({ products, locations, locationId, checkoutAvailab
   return <div className="store">
     <StoreHeader count={count} homeHref={homeHref} bagHref={bagHref} accountButton={accountButton} />
     <main>
+      {demoFallback && <p className="catalogue-status" role="status">
+        Showing the demo catalogue while the service reconnects. Checkout is unavailable.
+      </p>}
       {!bagPage && <section className="delivery-summary" aria-label="Delivery estimate">
         <div><p>{area ? 'Delivering to' : 'Delivery location'}</p>
           <strong>{area?.name || 'Choose your area'}</strong></div>

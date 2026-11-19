@@ -70,3 +70,8 @@ atomic, and retrying an unchanged request uses the same order. Admin saves inclu
 the current configuration revision so an order cannot be overwritten by a stale
 admin form. This first checkout includes the item subtotal only. Fulfilment
 operations, delivery fees, carrier booking, and online payment remain pending.
+
+For the demo web deployment, set `FLICKIT_DEMO_CATALOGUE_FALLBACK=true`
+to show the shared sample catalogue when the API is unreachable. The UI
+labels the fallback and disables checkout. Remove this flag before going
+live with real inventory.
