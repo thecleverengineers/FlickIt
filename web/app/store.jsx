@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Checkout from './checkout';
 import StoreHeader, { Icon } from './store-header';
 import CatalogueStatus from './catalogue-status';
@@ -8,19 +8,25 @@ import CatalogueStatus from './catalogue-status';
 const currency = new Intl.NumberFormat('en-IN', { currency: 'INR', style: 'currency' });
 const icons = { Produce: '🥬', Dairy: '🥛', Pantry: '🌾' };
 const productIcons = { banana: '🍌', tomato: '🍅', milk: '🥛', curd: '🥣', rice: '🍚', dal: '🫘' };
+const bagKey = 'flickit.shopping-bag';
 const price = paise => currency.format(paise / 100);
 
-export default function Store({ products, locations, locationId, checkoutAvailable, catalogueState }) {
+export default function Store({ products, locations, locationId, checkoutAvailable, catalogueState, bagPage }) {
   const [shortcut, setShortcut] = useState('home');
   useEffect(() => {
     function readShortcut() {
       const hash = window.location.hash.slice(1);
-      setShortcut(['browse', 'bag'].includes(hash) ? hash : 'home');
+      setShortcut(hash === 'browse' ? 'browse' : 'home');
     }
     readShortcut();
     window.addEventListener('hashchange', readShortcut);
     return () => window.removeEventListener('hashchange', readShortcut);
   }, []);
+
+  const accountButton = useRef(null);
+  const locationQuery = locationId ? `?${new URLSearchParams({ location: locationId })}` : '';
+  const homeHref = `/${locationQuery}`;
+  const bagHref = `/bag${locationQuery}`;
 
   const [receipt, setReceipt] = useState(null);
   const [query, setQuery] = useState('');
@@ -28,6 +34,21 @@ export default function Store({ products, locations, locationId, checkoutAvailab
   const [brand, setBrand] = useState('');
   const [delivery, setDelivery] = useState('');
   const [bag, setBag] = useState({});
+  const [bagLoaded, setBagLoaded] = useState(false);
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(bagKey) || '{}');
+      setBag(Object.fromEntries(Object.entries(saved ?? {}).filter(([, quantity]) =>
+        Number.isSafeInteger(quantity) && quantity > 0 && quantity <= 99)));
+    } catch {
+      setBag({});
+    }
+    setBagLoaded(true);
+  }, []);
+  useEffect(() => {
+    if (!bagLoaded) return;
+    try { sessionStorage.setItem(bagKey, JSON.stringify(bag)); } catch {}
+  }, [bag, bagLoaded]);
   const categories = ['All', ...new Set(products.map(product => product.category))];
   const brands = [...new Set(products.map(product => product.brand).filter(Boolean))];
   const visible = products.filter(product =>
@@ -37,17 +58,25 @@ export default function Store({ products, locations, locationId, checkoutAvailab
     [product.name, product.brand, product.variety, product.seller].filter(Boolean)
       .some(value => value.toLowerCase().includes(query.trim().toLowerCase())));
   const selected = products.filter(product => bag[product.id]);
-  const count = selected.reduce((sum, product) => sum + bag[product.id], 0);
+  const count = Object.values(bag).reduce((sum, quantity) => sum + quantity, 0);
+  const availableIds = new Set(selected.map(product => product.id));
+  const unavailable = Object.keys(bag).filter(id => !availableIds.has(id));
   const total = selected.reduce((sum, product) => sum + bag[product.id] * product.pricePaise, 0);
 
   function change(id, amount) {
-    setBag(current => ({ ...current, [id]: Math.max(0, (current[id] || 0) + amount) }));
+    setBag(current => {
+      const next = { ...current };
+      const quantity = Math.min(99, (current[id] || 0) + amount);
+      if (quantity > 0) next[id] = quantity;
+      else delete next[id];
+      return next;
+    });
   }
 
   return <div className="store">
-    <StoreHeader count={count} />
+    <StoreHeader count={count} homeHref={homeHref} bagHref={bagHref} accountButton={accountButton} />
     <main>
-      {locations.length > 0 && <form className="location-form" action="/">
+      {locations.length > 0 && <form className="location-form" action={bagPage ? "/bag" : "/"}>
         <label htmlFor="location">Delivery location</label>
         <select id="location" name="location" defaultValue={locationId}>
           <option value="">Browse all locations</option>
@@ -57,6 +86,7 @@ export default function Store({ products, locations, locationId, checkoutAvailab
         </select>
         <button type="submit">Update</button>
       </form>}
+      {!bagPage && <>
       <div className="store-search">
         <span aria-hidden="true">⌕</span>
         <input type="search" aria-label="Search groceries" placeholder="Search groceries"
@@ -95,37 +125,49 @@ export default function Store({ products, locations, locationId, checkoutAvailab
           {product.instantMinutes != null && <p className="eta">Estimated {product.instantMinutes} min</p>}
           {product.shipping && <p>Standard shipping available</p>}
           <div className="row"><strong>{price(product.pricePaise)}</strong>
-            <button aria-label={`Add ${product.name}`} className="add-product" onClick={() => change(product.id, 1)}>{bag[product.id] ? `+ · ${bag[product.id]}` : 'Add +'}</button></div>
+            <button aria-label={`Add ${product.name}`} className="add-product" disabled={!bagLoaded} onClick={() => change(product.id, 1)}>{bag[product.id] ? `+ · ${bag[product.id]}` : 'Add +'}</button></div>
         </article>)}
       </section>
       {visible.length === 0 && <p>{products.length ? 'No groceries match your search.' : 'No groceries are available here yet.'}</p>}
       </>}
       </section>
-      <section id="bag"><h2>Your bag</h2>
+      </>}
+      {bagPage && <section id="bag"><h1>Your bag</h1>
+        <a href={`${homeHref}#browse`}>Continue shopping</a>
         {receipt && <p role="status">Order confirmed. Reference <strong>{receipt.reference}</strong>.
           Pay {price(receipt.totalPaise)} on delivery.</p>}
-        {count === 0 ? <p>Your bag is empty.</p> : <>
+        {catalogueState ? <CatalogueStatus state={catalogueState} /> :
+          !bagLoaded ? <p role="status">Loading your bag…</p> :
+          count === 0 ? <p>Your bag is empty.</p> : <>
           <ul>{selected.map(product => <li className="row" key={product.id}>
             <span>{product.name} × {bag[product.id]}</span>
             <button aria-label={`Remove one ${product.name}`} onClick={() => change(product.id, -1)}>Remove one</button>
           </li>)}</ul>
+          {unavailable.length > 0 && <ul>{unavailable.map(id => <li className="row" key={id}>
+            <span>Item unavailable for this delivery area</span>
+            <button onClick={() => change(id, -bag[id])}>Remove unavailable item</button>
+          </li>)}</ul>}
           <strong>Subtotal {price(total)}</strong>
-          {!checkoutAvailable ? <p>Checkout is currently unavailable.</p> : !locationId
+          {unavailable.length > 0 ? <p>Remove unavailable items to check out.</p> : !checkoutAvailable ? <p>Checkout is currently unavailable.</p> : !locationId
             ? <p>Choose your delivery location to check out.</p>
             : <Checkout locationId={locationId} selected={selected} bag={bag} totalPaise={total}
                 onOrder={order => { setReceipt(order); setBag({}); }} />}
         </>}
-      </section>
+      </section>}
     </main>
     <nav className="bottom-appbar" aria-label="Shopping shortcuts">
-      {[['home', 'Home'], ['browse', 'Browse'], ['bag', 'Bag']].map(([id, label]) =>
-        <a href={`#${id}`} key={id} aria-current={shortcut === id ? 'location' : undefined}
-          aria-label={id === 'bag' ? `Bag, ${count} items` : undefined}>
-          <span className="appbar-icon"><Icon name={id} />
-            {id === 'bag' && count > 0 && <span className="appbar-count" aria-hidden="true">{count}</span>}
-          </span>
-          <span>{label}</span>
-        </a>)}
+      {[['home', 'Home', homeHref], ['bag', 'Bag', bagHref], ['browse', 'Categories', `${homeHref}#browse`]]
+        .map(([id, label, href]) =>
+          <a href={href} key={id} aria-current={(bagPage ? 'bag' : shortcut) === id ? 'location' : undefined}
+            aria-label={id === 'bag' ? `Bag, ${count} items` : undefined}>
+            <span className="appbar-icon"><Icon name={id} />
+              {id === 'bag' && count > 0 && <span className="appbar-count" aria-hidden="true">{count}</span>}
+            </span>
+            <span>{label}</span>
+          </a>)}
+      <button type="button" aria-haspopup="dialog" onClick={() => accountButton.current?.click()}>
+        <span className="appbar-icon"><Icon name="user" /></span><span>Account</span>
+      </button>
     </nav>
   </div>;
 }

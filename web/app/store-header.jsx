@@ -19,7 +19,7 @@ export function Icon({ name }) {
   </svg>;
 }
 
-export default function StoreHeader({ count, customer }) {
+export default function StoreHeader({ count, customer, homeHref, bagHref, accountButton }) {
   const dialog = useRef(null);
   const [panel, setPanel] = useState('menu');
   const [opened, setOpened] = useState(false);
@@ -35,12 +35,12 @@ export default function StoreHeader({ count, customer }) {
       <button className="header-icon header-menu" type="button" aria-haspopup="dialog"
           aria-controls="store-sidebar" aria-expanded={opened && panel === 'menu'}
           aria-label="Open sidebar" onClick={() => open('menu')}><Icon name="menu" /></button>
-      <a href="/" className="brand"><img src="/flickit-logo.png" alt="Flickit" width="2172" height="724" /></a>
+      <a href={homeHref} className="brand"><img src="/flickit-logo.png" alt="Flickit" width="2172" height="724" /></a>
       <div className="header-actions">
-        <a href="#bag" className="header-icon header-bag" aria-label={`Shopping bag, ${count} items`}>
+        <a href={bagHref} className="header-icon header-bag" aria-label={`Shopping bag, ${count} items`}>
           <Icon name="bag" />{count > 0 && <span aria-hidden="true">{count}</span>}
         </a>
-        <button className="header-icon" type="button" aria-haspopup="dialog"
+        <button ref={accountButton} className="header-icon" type="button" aria-haspopup="dialog"
           aria-label={customer ? 'Open profile' : 'Open guest account'}
           onClick={() => open('account')}><Icon name={customer ? 'profile' : 'user'} /></button>
       </div>
@@ -56,9 +56,9 @@ export default function StoreHeader({ count, customer }) {
           </button></form>
         </div>
         {panel === 'menu' ? <nav aria-label="Sidebar navigation">
-          <a href="#home" onClick={() => dialog.current.close()}>Home</a>
-          <a href="#browse" onClick={() => dialog.current.close()}>Browse groceries</a>
-          <a href="#bag" onClick={() => dialog.current.close()}>Shopping bag</a>
+          <a href={homeHref} onClick={() => dialog.current.close()}>Home</a>
+          <a href={`${homeHref}#browse`} onClick={() => dialog.current.close()}>Browse groceries</a>
+          <a href={bagHref} onClick={() => dialog.current.close()}>Shopping bag</a>
           <button type="button" onClick={() => setPanel('account')}>{customer ? 'Your profile' : 'Guest account'}</button>
         </nav> : customer ? <p>{customer.name}</p> :
           <p>Customer sign-in is currently unavailable.</p>}
