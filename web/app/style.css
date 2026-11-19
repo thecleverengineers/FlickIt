@@ -260,3 +260,27 @@ select { max-width: 100%; padding: 8px; min-height: 42px; background: white; col
 @media (min-width: 760px) {
   .directory-grid { grid-template-columns: repeat(4, minmax(0, 155px)); gap: 18px; }
 }
+
+.category-detail-bar > div { flex: 1; min-width: 0; }
+.category-detail-bar small { display: block; color: var(--muted); }
+.category-detail-store .store-search { scroll-margin-top: 76px; }
+.category-detail-layout { display: grid; grid-template-columns: clamp(70px, 19vw, 128px) minmax(0, 1fr); gap: 10px; align-items: start; }
+.category-side-rail { position: sticky; top: 76px; max-height: calc(100dvh - 164px); overflow-y: auto; border-right: 1px solid var(--line); }
+.category-side-rail a { display: grid; justify-items: center; gap: 5px; padding: 9px 4px; color: var(--muted); text-decoration: none; font-size: .73rem; text-align: center; overflow-wrap: anywhere; border-right: 3px solid transparent; }
+.category-side-rail a[aria-current] { color: #873621; border-color: #a75139; background: #fff1e8; font-weight: 750; }
+.category-side-rail .quick-category-icon { width: 44px; height: 44px; border-radius: 50%; }
+.category-side-rail svg { width: 34px; height: 34px; }
+.category-detail-results { min-width: 0; }
+.category-detail-title { font-size: 1.12rem; margin: 0 0 8px; }
+.category-detail-results .filters { gap: 7px; margin-block: 0 10px; }
+.category-detail-results .filters select { max-width: 100%; font-size: .8rem; }
+.category-detail-store .category-detail-results .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.category-detail-results .product-card { padding: 6px; min-width: 0; box-shadow: none; }
+.category-detail-results .product-photo { aspect-ratio: 1; background: #f8f1eb; }
+.category-detail-results .product-photo img { object-fit: contain; }
+.category-detail-results .product-card h2 { font-size: .9rem; overflow-wrap: anywhere; }
+.category-detail-results .product-card .row { flex-wrap: wrap; gap: 5px; }
+.category-detail-results .add-product { padding: 6px 9px; }
+@media (min-width: 760px) {
+  .category-detail-store .category-detail-results .grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; }
+}
