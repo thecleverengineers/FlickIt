@@ -8,13 +8,13 @@ const preferencesKey = 'flickit.account-preferences';
 const defaults = { birthday: '', appearance: 'system', showOffers: true };
 const money = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' });
 
-export default function Account({ homeHref, bagHref, loginHref, customer = null, orders = null, section, sectionTitle }) {
+export default function Account({ homeHref, bagHref, loginHref, customer = null, orders = null, orderPhotos = {}, section, sectionTitle }) {
   const query = homeHref.slice(1);
   const accountHref = `/account${query}`;
   const detailHref = title => `/account/${sectionSlug(title)}${query}`;
   const detail = (title, children, label = title) => {
     if (section) return sectionSlug(title) === section
-      ? <div className="account-detail-body">{children}</div>
+      ? <div className={section === "your-orders" ? "account-detail-body order-history-body" : "account-detail-body"}>{children}</div>
       : null;
     return <a className="account-row" href={detailHref(title)}>{label}<span aria-hidden="true">›</span></a>;
   };
@@ -104,8 +104,25 @@ export default function Account({ homeHref, bagHref, loginHref, customer = null,
         </>, preferences.birthday ? 'Edit your birthday' : 'Add your birthday')}
         {detail('Your orders', <>
           {orders === null ? <p>Order history is temporarily unavailable.</p> :
-            orders.length ? <ul>{orders.map(({ receipt }) => <li key={receipt.reference}>
-              <p><strong>{receipt.reference}</strong> · {receipt.status} · {money.format(receipt.totalPaise / 100)}</p>
+            orders.length ? <ul className="order-history">{orders.map(({ receipt, createdAt }) => <li className="order-card" key={receipt.reference}>
+              <header>
+                <div><h2>Order #{receipt.reference.slice(0, 8).toUpperCase()}</h2>
+                  {createdAt && <time dateTime={createdAt}>{new Intl.DateTimeFormat('en-IN', {
+                    dateStyle: 'medium', timeZone: 'Asia/Kolkata',
+                  }).format(new Date(createdAt))}</time>}
+                </div>
+                <span className="order-status">{receipt.status.replaceAll('_', ' ')}</span>
+              </header>
+              <ul className="order-products">{(receipt.items ?? []).map(item => <li key={item.id}>
+                <span className="order-photo">{orderPhotos[item.id]
+                  ? <img src={orderPhotos[item.id]} alt="" width="56" height="56" loading="lazy" />
+                  : <Icon name="bag" />}</span>
+                <div><strong>{item.name}</strong>
+                  <p>{money.format(item.pricePaise / 100)} × {item.quantity}</p></div>
+                <strong>{money.format(item.pricePaise * item.quantity / 100)}</strong>
+              </li>)}</ul>
+              <footer><span>Order total</span><strong>{money.format(receipt.totalPaise / 100)}</strong></footer>
+              <details className="order-reference"><summary>Order reference</summary><p>{receipt.reference}</p></details>
             </li>)}</ul> : <p>No confirmed orders on your account yet.</p>}
         </>)}
         {detail('Need help?', <><p>Review your delivery area and items in <a href={bagHref}>your bag</a>.</p></>)}
