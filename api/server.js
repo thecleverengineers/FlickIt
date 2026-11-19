@@ -1,7 +1,7 @@
 import { createServer } from 'node:http';
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { sampleProducts } from './catalogue.js';
-import { database } from './database.js';
+import { client, database } from './database.js';
 import { demoMarketplace, getCatalogue, validateMarketplace } from './marketplace.js';
 
 function send(response, status, body) {
@@ -31,6 +31,20 @@ async function readBody(request) {
     chunks.push(chunk);
   }
   return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+}
+
+if (process.env.FLICKIT_REQUIRE_DATABASE === 'true') {
+  if (!database) {
+    console.error('MONGODB_URI is required when FLICKIT_REQUIRE_DATABASE is enabled.');
+    process.exit(1);
+  }
+  try {
+    await database.command({ ping: 1 });
+  } catch (error) {
+    console.error('Flickit cannot reach MongoDB at startup.', error.name);
+    await client.close();
+    process.exit(1);
+  }
 }
 
 createServer(async (request, response) => {

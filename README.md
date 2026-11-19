@@ -47,3 +47,12 @@ The public web storefront supports delivery-area selection and filtering by cate
 Set a random server-only `MARKETPLACE_ADMIN_TOKEN` of 32 characters or more to enable the admin API. Use that token as a Bearer credential over HTTPS. `GET /v1/admin/marketplace` reads the full configuration. `PUT /v1/admin/marketplace` validates and replaces the full configuration in MongoDB. The shape is shown by `demoMarketplace` in `api/marketplace.js`. With Atlas configured and no marketplace configuration saved, the original products collection remains available. `GET /v1/marketplace` exposes locations and accepted payment methods, and `GET /v1/products?location=<id>` returns eligible listings.
 
 The admin API controls marketplace data. A graphical admin console, seller portal, stock reservation, COD and online checkout, shipping rates and carrier integration are pending. The Flutter storefront reads the shared catalogue and still needs the location and delivery controls.
+
+## Render production API
+
+Deploy the Node API with `npm ci` and `npm run start -w @dimapur/api`.
+Set `MONGODB_URI` as a Render secret, set `MONGODB_DATABASE=flickit`,
+and set `FLICKIT_REQUIRE_DATABASE=true` so the API refuses to start
+without a reachable database. Use `/health` to verify that the service
+reports `mode: mongodb` after the deploy, then verify the catalogue.
+The database user needs permissions scoped to the Flickit database.
