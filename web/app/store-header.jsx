@@ -32,17 +32,17 @@ export default function StoreHeader({ count, customer }) {
 
   return <>
     <header className="store-header" id="home">
-      <a href="#bag" className="header-icon header-bag" aria-label={`Shopping bag, ${count} items`}>
-        <Icon name="bag" />{count > 0 && <span aria-hidden="true">{count}</span>}
-      </a>
+      <button className="header-icon header-menu" type="button" aria-haspopup="dialog"
+          aria-controls="store-sidebar" aria-expanded={opened && panel === 'menu'}
+          aria-label="Open sidebar" onClick={() => open('menu')}><Icon name="menu" /></button>
       <a href="/" className="brand"><img src="/flickit-logo.png" alt="Flickit" width="2172" height="724" /></a>
       <div className="header-actions">
+        <a href="#bag" className="header-icon header-bag" aria-label={`Shopping bag, ${count} items`}>
+          <Icon name="bag" />{count > 0 && <span aria-hidden="true">{count}</span>}
+        </a>
         <button className="header-icon" type="button" aria-haspopup="dialog"
           aria-label={customer ? 'Open profile' : 'Open guest account'}
           onClick={() => open('account')}><Icon name={customer ? 'profile' : 'user'} /></button>
-        <button className="header-icon header-menu" type="button" aria-haspopup="dialog"
-          aria-controls="store-sidebar" aria-expanded={opened && panel === 'menu'}
-          aria-label="Open sidebar" onClick={() => open('menu')}><Icon name="menu" /></button>
       </div>
     </header>
     <dialog ref={dialog} id="store-sidebar" className="store-sidebar" aria-labelledby="sidebar-title"
