@@ -37,7 +37,7 @@ export async function customerAuth(action, request, readBody) {
     if (action === 'orders') {
       if (!session) return [401, { error: 'Sign in to continue.' }];
       const orders = await database.collection('orders').find({ customerMobile: session.mobile },
-        { projection: { _id: 0, receipt: 1, createdAt: 1 } }).sort({ createdAt: -1 }).limit(30).toArray();
+        { projection: { _id: 0, receipt: 1, createdAt: 1, 'deliveryAddress.address': 1 } }).sort({ createdAt: -1 }).limit(30).toArray();
       return [200, { orders }];
     }
     return session
