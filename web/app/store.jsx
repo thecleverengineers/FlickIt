@@ -74,7 +74,7 @@ export default function Store({ products, locations, locationId, checkoutAvailab
     (!delivery || (delivery === 'instant' ? product.instantMinutes != null : product.shipping)) &&
     [product.name, product.brand, product.variety, product.seller].filter(Boolean)
       .some(value => value.toLowerCase().includes(query.trim().toLowerCase())));
-  const selected = products.filter(product => bag[product.id]);
+  const selected = products.filter(product => !product.preview && bag[product.id]);
   const count = Object.values(bag).reduce((sum, quantity) => sum + quantity, 0);
   const availableIds = new Set(selected.map(product => product.id));
   const unavailable = Object.keys(bag).filter(id => !availableIds.has(id));
@@ -100,7 +100,7 @@ export default function Store({ products, locations, locationId, checkoutAvailab
   }
 
   function repeatOrder() {
-    const ids = new Set(products.map(product => product.id));
+    const ids = new Set(products.filter(product => !product.preview).map(product => product.id));
     const eligible = lastOrder.filter(item => ids.has(item.id));
     if (!eligible.length) {
       setShoppingNotice('None of the items in your last order are available here.');
@@ -209,8 +209,9 @@ export default function Store({ products, locations, locationId, checkoutAvailab
           {product.seller && <p>Sold by {product.seller}</p>}
           {product.instantMinutes != null && <p className="eta">Estimated {product.instantMinutes} min</p>}
           {product.shipping && <p>Standard shipping available</p>}
+          {product.preview ? <p className="eta">Preview · not for sale</p> :
           <div className="row"><strong>{price(product.pricePaise)}</strong>
-            <button aria-label={`Add ${product.name}`} className="add-product" disabled={!bagLoaded} onClick={() => change(product.id, 1)}>{bag[product.id] ? `+ · ${bag[product.id]}` : 'Add +'}</button></div>
+            <button aria-label={`Add ${product.name}`} className="add-product" disabled={!bagLoaded} onClick={() => change(product.id, 1)}>{bag[product.id] ? `+ · ${bag[product.id]}` : 'Add +'}</button></div>}
         </article>)}
       </section>
       {visible.length === 0 && <p>{products.length ? 'No groceries match your search.' : 'No groceries are available here yet.'}</p>}
