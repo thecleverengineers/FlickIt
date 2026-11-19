@@ -1,8 +1,13 @@
+import { sessionCookie } from '../../customer-session';
+
 export async function POST(request) {
+  const token = request.cookies.get(sessionCookie)?.value;
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers.Authorization = `Bearer ${token}`;
   try {
     const upstream = await fetch(new URL('/v1/orders', process.env.API_ORIGIN || 'http://localhost:4000'), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: request.body,
       duplex: 'half',
       redirect: 'error',

@@ -19,3 +19,14 @@ export async function getCustomer() {
     return null;
   }
 }
+
+export async function getCustomerOrders() {
+  const token = (await cookies()).get(sessionCookie)?.value;
+  if (!token) return null;
+  try {
+    const response = await customerApi('orders', { headers: { Authorization: `Bearer ${token}` } });
+    return response.ok ? (await response.json()).orders : null;
+  } catch {
+    return null;
+  }
+}

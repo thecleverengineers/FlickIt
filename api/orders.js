@@ -56,8 +56,8 @@ export function priceOrder(config, input) {
   return { items, totalPaise, listings };
 }
 
-export async function placeOrder(client, database, input) {
-  const fingerprint = createHash('sha256').update(JSON.stringify(input)).digest('hex');
+export async function placeOrder(client, database, input, customerMobile = null) {
+  const fingerprint = createHash('sha256').update(JSON.stringify(customerMobile ? { input, customerMobile } : input)).digest('hex');
   const orders = database.collection('orders');
   const settings = database.collection('settings');
   const reference = randomUUID();
@@ -83,6 +83,7 @@ export async function placeOrder(client, database, input) {
       }, { session });
       await orders.insertOne({
         _id: input.requestId, fingerprint, receipt, createdAt: new Date(),
+        ...(customerMobile ? { customerMobile } : {}),
         deliveryAddress: { locationId: input.locationId, name: input.name, phone: input.phone, address: input.address },
       }, { session });
       return receipt;

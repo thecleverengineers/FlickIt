@@ -1,6 +1,6 @@
 import { createServer } from 'node:http';
 import { createHash, timingSafeEqual } from 'node:crypto';
-import { customerAuth } from './customer-auth.js';
+import { customerAuth, findCustomerSession } from './customer-auth.js';
 import { OrderError, parseOrder, placeOrder } from './orders.js';
 import { sampleProducts } from './catalogue.js';
 import { client, database } from './database.js';
@@ -42,6 +42,12 @@ if (process.env.FLICKIT_REQUIRE_DATABASE === 'true') {
   }
   try {
     await database.command({ ping: 1 });
+    await Promise.all([
+      ...['customer_otp', 'customer_otp_budget', 'customer_sessions'].map(collection =>
+        database.collection(collection).createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 })),
+      database.collection('orders').createIndex({ customerMobile: 1, createdAt: -1 }),
+      database.collection('orders').createIndex({ createdAt: -1 }),
+    ]);
   } catch (error) {
     console.error('Flickit cannot reach MongoDB at startup.', error.name);
     await client.close();
@@ -52,7 +58,7 @@ if (process.env.FLICKIT_REQUIRE_DATABASE === 'true') {
 createServer(async (request, response) => {
   const url = new URL(request.url, 'http://localhost');
   const path = url.pathname;
-  const auth = /^\/v1\/auth\/(request|verify|session|logout)$/.exec(path)?.[1];
+  const auth = /^\/v1\/auth\/(request|verify|session|logout|orders)$/.exec(path)?.[1];
   const adminOrders = path === '/v1/admin/orders';
   const admin = path === '/v1/admin/marketplace' || adminOrders;
   const order = path === '/v1/orders';
@@ -60,7 +66,7 @@ createServer(async (request, response) => {
     return send(response, 404, { error: 'Not found' });
   }
   if (admin && !isAdmin(request)) return send(response, 401, { error: 'Unauthorized' });
-  const methods = auth ? [auth === 'session' ? 'GET' : 'POST'] : adminOrders ? ['GET', 'PATCH'] : admin ? ['GET', 'PUT'] : order ? ['POST'] : ['GET'];
+  const methods = auth ? [['session', 'orders'].includes(auth) ? 'GET' : 'POST'] : adminOrders ? ['GET', 'PATCH'] : admin ? ['GET', 'PUT'] : order ? ['POST'] : ['GET'];
   if (!methods.includes(request.method)) {
     response.setHeader('Allow', methods.join(', '));
     return send(response, 405, { error: 'Method not allowed' });
@@ -106,7 +112,12 @@ createServer(async (request, response) => {
       } catch {
         return send(response, 400, { error: 'Invalid checkout request' });
       }
-      return send(response, 201, { order: await placeOrder(client, database, parseOrder(body)) });
+      const input = parseOrder(body);
+      const session = await findCustomerSession(request.headers.authorization);
+      if (request.headers.authorization && !session) {
+        return send(response, 401, { error: 'Your session expired. Sign in again before checking out.' });
+      }
+      return send(response, 201, { order: await placeOrder(client, database, input, session?.mobile) });
     }
     if (admin && request.method === 'PUT') {
       if (!database) return send(response, 503, { error: 'Configure MongoDB for admin writes' });

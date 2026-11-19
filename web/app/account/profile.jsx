@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { Icon } from '../store-header';
 
 const preferencesKey = 'flickit.account-preferences';
-const orderKey = 'flickit.last-order-summary';
 const defaults = { birthday: '', appearance: 'system', showOffers: true };
 const money = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' });
 
@@ -14,11 +13,9 @@ function Detail({ title, children }) {
   </details>;
 }
 
-export default function Account({ homeHref, bagHref, loginHref, customer = null }) {
-  const customerOrderKey = customer ? `${orderKey}.${customer.id}` : null;
+export default function Account({ homeHref, bagHref, loginHref, customer = null, orders = null }) {
   const birthdayKey = customer ? `flickit.birthday.${customer.id}` : null;
   const [preferences, setPreferences] = useState(defaults);
-  const [order, setOrder] = useState(null);
   const [notice, setNotice] = useState('');
 
   useEffect(() => {
@@ -26,9 +23,8 @@ export default function Account({ homeHref, bagHref, loginHref, customer = null 
       const saved = JSON.parse(localStorage.getItem(preferencesKey) || '{}');
       setPreferences({ ...defaults, appearance: saved?.appearance || defaults.appearance,
         showOffers: saved?.showOffers !== false, birthday: birthdayKey ? localStorage.getItem(birthdayKey) || "" : "" });
-      setOrder(customerOrderKey ? JSON.parse(sessionStorage.getItem(customerOrderKey) || 'null') : null);
     } catch {}
-  }, [birthdayKey, customerOrderKey]);
+  }, [birthdayKey]);
 
   function save(field, value) {
     const next = { ...preferences, [field]: value };
@@ -82,8 +78,10 @@ export default function Account({ homeHref, bagHref, loginHref, customer = null 
             onChange={event => save('birthday', event.target.value)} /></label>
         </Detail>
         <Detail title="Your orders">
-          {order ? <p>Last order <strong>{order.reference}</strong> · {money.format(order.totalPaise / 100)}</p>
-            : <p>No confirmed orders in this browser session.</p>}
+          {orders === null ? <p>Order history is temporarily unavailable.</p> :
+            orders.length ? <ul>{orders.map(({ receipt }) => <li key={receipt.reference}>
+              <p><strong>{receipt.reference}</strong> · {receipt.status} · {money.format(receipt.totalPaise / 100)}</p>
+            </li>)}</ul> : <p>No confirmed orders on your account yet.</p>}
         </Detail>
         <Detail title="Need help?"><p>Review your delivery area and items in <a href={bagHref}>your bag</a>.</p></Detail>
         <Detail title="Appearance">
@@ -120,16 +118,14 @@ export default function Account({ homeHref, bagHref, loginHref, customer = null 
         <button className="account-row" type="button" onClick={share}>Share Flickit <span aria-hidden="true">›</span></button>
         <Detail title="About us"><p>Flickit is a grocery marketplace for browsing local delivery options.</p></Detail>
         <Detail title="Sell on Flickit"><p>Public seller applications are closed during the preview.</p></Detail>
-        <Detail title="Account privacy"><p>Birthday and display preferences stay in this browser. Recent order summaries are kept for the browser session.</p>
+        <Detail title="Account privacy"><p>Birthday and display preferences stay in this browser. Orders placed while signed in are stored in your Flickit account.</p>
           <button type="button" onClick={() => {
             try {
               localStorage.removeItem(preferencesKey);
-              if (customerOrderKey) sessionStorage.removeItem(customerOrderKey);
               if (birthdayKey) localStorage.removeItem(birthdayKey);
               sessionStorage.removeItem("flickit.last-order-items");
               setPreferences(defaults);
-              setOrder(null);
-              setNotice('Account preferences and the recent order summary were cleared.');
+              setNotice('Local account preferences and reorder items were cleared.');
             } catch { setNotice('Your browser couldn’t clear this information.'); }
           }}>Clear account data on this device</button>
         </Detail>

@@ -241,9 +241,6 @@ export default function Store({ products, locations, locationId, checkoutAvailab
                   setLastOrder(items);
                   try {
                     sessionStorage.setItem(lastOrderKey, JSON.stringify(items));
-                    if (customer) sessionStorage.setItem(`flickit.last-order-summary.${customer.id}`, JSON.stringify({
-                      reference: order.reference, totalPaise: order.totalPaise,
-                    }));
                   } catch {}
                   setReceipt(order);
                   setBag({});

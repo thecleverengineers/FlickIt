@@ -7,6 +7,14 @@ const sessionSeconds = 7 * 24 * 60 * 60;
 const sessionPattern = /^[a-f0-9]{64}$/;
 const digestToken = token => createHash('sha256').update(token).digest('hex');
 
+export async function findCustomerSession(authorization) {
+  const token = /^Bearer ([a-f0-9]{64})$/.exec(authorization ?? '')?.[1];
+  if (!database || !token) return null;
+  return database.collection('customer_sessions').findOne({
+    _id: digestToken(token), expiresAt: { $gt: new Date() },
+  });
+}
+
 export async function customerAuth(action, request, readBody) {
   const key = process.env.FAST2SMS_API_KEY;
   const sender = process.env.FAST2SMS_DLT_SENDER_ID || 'SECAST';
@@ -18,14 +26,20 @@ export async function customerAuth(action, request, readBody) {
   }
   const sessions = database.collection('customer_sessions');
   const token = /^Bearer ([a-f0-9]{64})$/.exec(request.headers.authorization ?? '')?.[1];
-  if (action === 'session' || action === 'logout') {
+  if (['session', 'logout', 'orders'].includes(action)) {
     if (!sessionPattern.test(token ?? '')) return [401, { error: 'Sign in to continue.' }];
     const _id = digestToken(token);
     if (action === 'logout') {
       await sessions.deleteOne({ _id });
       return [200, { signedOut: true }];
     }
-    const session = await sessions.findOne({ _id, expiresAt: { $gt: new Date() } });
+    const session = await findCustomerSession(request.headers.authorization);
+    if (action === 'orders') {
+      if (!session) return [401, { error: 'Sign in to continue.' }];
+      const orders = await database.collection('orders').find({ customerMobile: session.mobile },
+        { projection: { _id: 0, receipt: 1, createdAt: 1 } }).sort({ createdAt: -1 }).limit(30).toArray();
+      return [200, { orders }];
+    }
     return session
       ? [200, { customer: { id: createHmac('sha256', secret).update(`customer:${session.mobile}`).digest('hex'), mobile: session.mobile } }]
       : [401, { error: 'Sign in to continue.' }];
