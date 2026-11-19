@@ -76,10 +76,10 @@ createServer(async (request, response) => {
       await database.collection('settings').updateOne(
         { _id: 'marketplace' }, { $set: { config } }, { upsert: true }
       );
-      return send(response, 200, { config });
+      return send(response, 200, { config, writable: Boolean(database) });
     }
     const config = await readConfig();
-    if (admin) return send(response, 200, { config });
+    if (admin) return send(response, 200, { config, writable: Boolean(database) });
     if (path === '/v1/marketplace') return send(response, 200, {
       locations: config?.locations ?? [],
       paymentMethods: config?.paymentMethods ?? [],
