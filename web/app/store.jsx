@@ -72,7 +72,7 @@ export default function Store({ products, locations, locationId, checkoutAvailab
     (category === 'All' || product.category === category) &&
     (!brand || product.brand === brand) &&
     (!delivery || (delivery === 'instant' ? product.instantMinutes != null : product.shipping)) &&
-    [product.name, product.brand, product.variety, product.seller].filter(Boolean)
+    [product.name, product.brand, product.variety, product.seller, product.description].filter(Boolean)
       .some(value => value.toLowerCase().includes(query.trim().toLowerCase())));
   const selected = products.filter(product => !product.preview && bag[product.id]);
   const count = Object.values(bag).reduce((sum, quantity) => sum + quantity, 0);
@@ -202,10 +202,20 @@ export default function Store({ products, locations, locationId, checkoutAvailab
       </div>
       <section className="grid" aria-label="Products">
         {visible.map(product => <article className="product-card" key={product.id}>
-          <div className="product-art" aria-hidden="true">{productIcons[product.id] || icons[product.category] || '🛒'}</div>
+          {product.imageUrl ? <div className="product-art product-photo">
+            <img src={product.imageUrl} alt={product.name} loading="lazy" decoding="async"
+              referrerPolicy="no-referrer" onError={event => {
+                event.currentTarget.hidden = true;
+                event.currentTarget.nextElementSibling.hidden = false;
+              }} />
+            <span hidden aria-hidden="true">{productIcons[product.id] || icons[product.category] || '🛒'}</span>
+          </div> : <div className="product-art" aria-hidden="true">{productIcons[product.id] || icons[product.category] || '🛒'}</div>}
           <h2>{product.name}</h2>
           <p className="product-meta">{[product.brand, product.pack].filter(Boolean).join(' · ')}</p>
           {product.variety && product.variety !== product.pack && <p>{product.variety}</p>}
+          {product.description && <details className="product-details">
+            <summary>Product details</summary><p>{product.description}</p>
+          </details>}
           {product.seller && <p>Sold by {product.seller}</p>}
           {product.instantMinutes != null && <p className="eta">Estimated {product.instantMinutes} min</p>}
           {product.shipping && <p>Standard shipping available</p>}

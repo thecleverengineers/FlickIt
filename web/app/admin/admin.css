@@ -8,3 +8,4 @@
 .admin .admin-record { margin-block: 14px; background: white; }
 .admin-record button { margin-top: 12px; }
 .admin button:disabled { opacity: .5; cursor: default; }
+.admin textarea { width: 100%; border: 1px solid #64796a; border-radius: 12px; padding: 10px; font: inherit; resize: vertical; }

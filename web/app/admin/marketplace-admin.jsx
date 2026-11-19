@@ -13,6 +13,7 @@ const sections = {
   listings: { title: 'Listings', fields: {
     name: 'Name', category: 'Category', brand: 'Brand', variety: 'Variety', pack: 'Pack',
     warehouseId: 'Warehouse', stock: 'Stock units', pricePaise: 'Price in paise',
+    imageUrl: 'Product photo URL', description: 'Product details',
   } },
 };
 
@@ -20,7 +21,7 @@ const defaults = {
   locations: { name: '', city: '', town: '' },
   sellers: { name: '' },
   warehouses: { sellerId: '', locationIds: [], instantMinutes: null, shipping: false },
-  listings: { name: '', category: '', brand: '', variety: '', pack: '', warehouseId: '', stock: 0, pricePaise: 0 },
+  listings: { name: '', category: '', brand: '', variety: '', pack: '', warehouseId: '', stock: 0, pricePaise: 0, imageUrl: '', description: '' },
 };
 
 const empty = { locations: [], sellers: [], warehouses: [], listings: [], paymentMethods: [] };
@@ -89,6 +90,14 @@ export default function MarketplaceAdmin() {
     }
     if (field === 'shipping') {
       return <input type="checkbox" checked={value} onChange={event => change(event.target.checked)} />;
+    }
+    if (field === 'imageUrl') {
+      return <input type="url" value={value ?? ''} maxLength={2048} placeholder="https://"
+        onChange={event => change(event.target.value)} />;
+    }
+    if (field === 'description') {
+      return <textarea value={value ?? ''} rows={4} maxLength={2000}
+        onChange={event => change(event.target.value)} />;
     }
     if (['instantMinutes', 'stock', 'pricePaise'].includes(field)) {
       const instant = field === 'instantMinutes';

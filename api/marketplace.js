@@ -25,6 +25,17 @@ export const demoMarketplace = {
 
 const isText = value => typeof value === 'string' && value.trim().length > 0 && value.length <= 120;
 
+function validProductImage(value) {
+  if (value === undefined || value === '') return true;
+  if (typeof value !== 'string' || value.length > 2048) return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && !url.username && !url.password;
+  } catch {
+    return false;
+  }
+}
+
 export function validateMarketplace(value) {
   function records(key, fields) {
     const rows = value?.[key];
@@ -52,6 +63,11 @@ export function validateMarketplace(value) {
       Number.isSafeInteger(listing.stock) && listing.stock >= 0 &&
       Number.isSafeInteger(listing.pricePaise) && listing.pricePaise >= 0
   )) throw new Error('Invalid listing warehouse, price or stock');
+  if (!value.listings.every(listing => validProductImage(listing.imageUrl) &&
+      (listing.description === undefined ||
+       (typeof listing.description === 'string' && listing.description.length <= 2000)))) {
+    throw new Error('Use an HTTPS product image URL and a description of up to 2,000 characters');
+  }
   if (!Array.isArray(value.paymentMethods) ||
       !value.paymentMethods.every(method => ['cod', 'online'].includes(method))) {
     throw new Error('Invalid payment methods');
@@ -67,9 +83,9 @@ export function getCatalogue(marketplace, locationId) {
     const warehouse = warehouses.get(listing.warehouseId);
     const instantMinutes = warehouse.locationIds.includes(locationId) ? warehouse.instantMinutes : null;
     if (locationId && instantMinutes === null && !warehouse.shipping) return [];
-    const { id, name, category, pack, pricePaise, brand, variety } = listing;
+    const { id, name, category, pack, pricePaise, brand, variety, imageUrl, description } = listing;
     return [{
-      id, name, category, pack, pricePaise, brand, variety,
+      id, name, category, pack, pricePaise, brand, variety, imageUrl, description,
       seller: sellers.get(warehouse.sellerId),
       instantMinutes,
       shipping: warehouse.shipping,
