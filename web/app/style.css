@@ -156,9 +156,13 @@ select { max-width: 100%; padding: 8px; min-height: 42px; background: white; col
   background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
   padding: 9px; font-size: .8rem;
 }
-.quick-categories { display: flex; flex-wrap: nowrap; overflow-x: auto; margin: 0 0 16px; padding: 3px; }
-.quick-categories button { display: grid; justify-items: center; gap: 4px; min-width: 70px; border-radius: 14px; }
-.quick-categories span { font-size: 1.3rem; }
+.quick-categories { display: flex; flex-wrap: nowrap; gap: 8px; overflow-x: auto; margin: 0 0 16px; padding: 4px 3px 8px; scroll-snap-type: x proximity; scrollbar-width: thin; scrollbar-color: #d9c7bc transparent; }
+.store .quick-categories button { display: grid; grid-template-rows: 54px 2.6em; justify-items: center; align-items: start; gap: 7px; flex: 0 0 86px; padding: 5px 2px; border: 0; border-radius: 12px; background: transparent; color: var(--ink); scroll-snap-align: start; }
+.quick-category-icon { display: grid; place-items: center; width: 54px; height: 54px; border-radius: 17px; }
+.quick-category-label { font-size: .79rem; line-height: 1.3; text-align: center; overflow-wrap: anywhere; }
+.quick-categories button[aria-pressed=true] .quick-category-icon { outline: 1px solid #a75139; outline-offset: 2px; }
+.quick-categories button[aria-pressed=true] .quick-category-label { color: #873621; font-weight: 750; }
+.quick-categories button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .collections { margin: 20px 0; }
 .collection-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 138px), 1fr)); gap: 10px; }
 .store .collection-card {
