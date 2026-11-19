@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Checkout from './checkout';
 import StoreHeader, { Icon } from './store-header';
 import CatalogueStatus from './catalogue-status';
+import CategoryDirectory from './category-directory';
 import CategoryIcon from './category-icon';
 import VoiceSearch from './voice-search';
 
@@ -14,20 +15,10 @@ const lastOrderKey = 'flickit.last-order-items';
 const bagKey = 'flickit.shopping-bag';
 const price = paise => currency.format(paise / 100);
 
-export default function Store({ products, locations, locationId, checkoutAvailable, catalogueState, bagPage, demoFallback, customer }) {
-  const [shortcut, setShortcut] = useState('home');
-  useEffect(() => {
-    function readShortcut() {
-      const hash = window.location.hash.slice(1);
-      setShortcut(hash === 'browse' ? 'browse' : 'home');
-    }
-    readShortcut();
-    window.addEventListener('hashchange', readShortcut);
-    return () => window.removeEventListener('hashchange', readShortcut);
-  }, []);
-
+export default function Store({ products, locations, locationId, checkoutAvailable, catalogueState, bagPage, categoriesPage, demoFallback, customer }) {
   const locationQuery = locationId ? `?${new URLSearchParams({ location: locationId })}` : '';
   const homeHref = `/${locationQuery}`;
+  const categoriesHref = `/categories${locationQuery}`;
   const accountHref = `/account${locationQuery}`;
   const bagHref = `/bag${locationQuery}`;
 
@@ -122,7 +113,7 @@ export default function Store({ products, locations, locationId, checkoutAvailab
       : 'Available items from your last order were added to your bag.');
   }
 
-  return <div className={bagPage ? "store bag-store" : "store"}>
+  return <div className={bagPage ? "store bag-store" : categoriesPage ? "store categories-store" : "store"}>
     {bagPage ? <header className="checkout-bar">
       <a href={homeHref} aria-label="Back to shop">←</a>
       <strong>Checkout</strong>
@@ -141,7 +132,7 @@ export default function Store({ products, locations, locationId, checkoutAvailab
         {area && !instantEstimate && products.some(product => product.shipping) &&
           <div className="delivery-estimate"><span>Standard shipping available</span></div>}
       </section>}
-      {locations.length > 0 && <form className="location-form" action={bagPage ? "/bag" : "/"}>
+      {locations.length > 0 && <form className="location-form" action={bagPage ? "/bag" : categoriesPage ? "/categories" : "/"}>
         <label htmlFor="location">Delivery location</label>
         <select id="location" name="location" defaultValue={locationId}>
           <option value="">Browse all locations</option>
@@ -152,6 +143,7 @@ export default function Store({ products, locations, locationId, checkoutAvailab
         <button type="submit">Update</button>
       </form>}
       {!bagPage && <>
+      {categoriesPage && <h1 className="categories-title">Categories</h1>}
       <div className="store-search">
         <span aria-hidden="true">⌕</span>
         <input type="search" aria-label="Search groceries" placeholder="Search groceries"
@@ -164,17 +156,17 @@ export default function Store({ products, locations, locationId, checkoutAvailab
           window.location.hash = 'browse';
         }} />
       </div>
-      {!catalogueState && <nav className="quick-categories" aria-label="Quick categories">
+      {!categoriesPage && !catalogueState && <nav className="quick-categories" aria-label="Quick categories">
         {categories.map(item => <button type="button" key={item} aria-pressed={category === item} onClick={() => browseCategory(item)}>
           <CategoryIcon name={item} /><span className="quick-category-label">{item}</span>
         </button>)}
       </nav>}
-      {showOffers && <section className="hero">
+      {!categoriesPage && showOffers && <section className="hero">
         <div><p>Flickit Grocery</p><h1>Everyday groceries,<br />delivered.</h1>
           <a className="shop-action" href="#browse">Shop groceries</a></div>
         <div className="hero-visual" aria-hidden="true"><span>🥑</span><span>🛍️</span><span>🍊</span></div>
       </section>}
-      {!catalogueState && categories.length > 1 && <section className="collections" aria-labelledby="collections-title">
+      {!categoriesPage && !catalogueState && categories.length > 1 && <section className="collections" aria-labelledby="collections-title">
         <div className="row"><h2 id="collections-title">Shop essentials</h2>
           {lastOrder.length > 0 && <button type="button" disabled={!bagLoaded} onClick={repeatOrder}>Order again</button>}
         </div>
@@ -194,8 +186,14 @@ export default function Store({ products, locations, locationId, checkoutAvailab
           })}
         </div>
       </section>}
+      {categoriesPage && !catalogueState && category === 'All' && !query.trim() && categories.length > 1 &&
+        <CategoryDirectory categories={categories.slice(1)} products={products} onSelect={item => setCategory(item)} />}
+      {(!categoriesPage || catalogueState || category !== 'All' || query.trim() || categories.length === 1) &&
       <section id="browse" aria-labelledby="browse-title">
-      <h2 id="browse-title">Shop by category</h2>
+      <h2 id="browse-title">{categoriesPage && category !== 'All' ? category : categoriesPage && query.trim() ? 'Search results' : 'Shop by category'}</h2>
+      {categoriesPage && (category !== 'All' || query.trim()) && <button type="button" onClick={() => {
+        setCategory('All'); setQuery(''); setBrand(''); setDelivery('');
+      }}>← All categories</button>}
       {catalogueState ? <CatalogueStatus state={catalogueState} /> : <>
       <nav className="category-nav" aria-label="Product categories">{categories.map(item =>
         <button key={item} aria-pressed={category === item} onClick={() => setCategory(item)}>
@@ -238,7 +236,7 @@ export default function Store({ products, locations, locationId, checkoutAvailab
       </section>
       {visible.length === 0 && <p>{products.length ? 'No groceries match your search.' : 'No groceries are available here yet.'}</p>}
       </>}
-      </section>
+      </section>}
       </>}
       {bagPage && <section className="bag-page" aria-labelledby="bag-title">
         <header className="bag-heading">
@@ -326,10 +324,13 @@ export default function Store({ products, locations, locationId, checkoutAvailab
         checkoutAvailable && !locationId ? <a href={homeHref}>Choose delivery area</a> :
         <button type="button" disabled>Checkout unavailable</button>}
     </footer>}
+    {categoriesPage && count > 0 && <a className="category-view-bag" href={bagHref}>
+      <Icon name="bag" /><span><strong>View bag</strong><small>{count} {count === 1 ? 'item' : 'items'}</small></span><span aria-hidden="true">›</span>
+    </a>}
     {!bagPage && <nav className="bottom-appbar" aria-label="Shopping shortcuts">
-      {[['home', 'Home', homeHref], ['bag', 'Bag', bagHref], ['browse', 'Categories', `${homeHref}#browse`]]
+      {[['home', 'Home', homeHref], ['bag', 'Bag', bagHref], ['browse', 'Categories', categoriesHref]]
         .map(([id, label, href]) =>
-          <a href={href} key={id} aria-current={(bagPage ? 'bag' : shortcut) === id ? 'location' : undefined}
+          <a href={href} key={id} aria-current={(categoriesPage ? 'browse' : 'home') === id ? 'location' : undefined}
             aria-label={id === 'bag' ? `Bag, ${count} items` : undefined}>
             <span className="appbar-icon"><Icon name={id} />
               {id === 'bag' && count > 0 && <span className="appbar-count" aria-hidden="true">{count}</span>}
