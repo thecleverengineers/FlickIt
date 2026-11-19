@@ -1,3 +1,4 @@
+import { notFound, unstable_rethrow } from 'next/navigation';
 import { Suspense } from 'react';
 import { demoMarketplace, getCatalogue } from '../../api/marketplace';
 import Store from './store';
@@ -32,7 +33,7 @@ async function getApi(path, timeout, params) {
   throw failure ?? new Error('Catalogue API unavailable');
 }
 
-async function Catalogue({ searchParams, bagPage, categoriesPage }) {
+async function Catalogue({ searchParams, bagPage, categoriesPage, productId }) {
   const allowDemoFallback = process.env.FLICKIT_DEMO_CATALOGUE_FALLBACK === 'true';
   const timeout = allowDemoFallback ? 3500 : 65000;
   let locations = [];
@@ -53,23 +54,25 @@ async function Catalogue({ searchParams, bagPage, categoriesPage }) {
     ]);
     locations = marketplace.locations;
     current = locations.find(area => area.id === requestedLocation)?.id || '';
-    return <Store customer={customer} bagPage={bagPage} categoriesPage={categoriesPage} initialCategory={category} key={current} products={products} locations={locations}
+    if (productId && !products.some(product => product.id === productId)) notFound();
+    return <Store customer={customer} bagPage={bagPage} categoriesPage={categoriesPage} productId={productId} initialCategory={category} key={current} products={products} locations={locations}
       locationId={current} checkoutAvailable={marketplace.checkoutAvailable} />;
   } catch (error) {
+    unstable_rethrow(error);
     console.warn('Product catalogue unavailable:', error.message);
     const customer = await customerRequest;
     if (allowDemoFallback) {
       const demoLocation = demoMarketplace.locations.find(area => area.id === location)?.id || '';
-      return <Store customer={customer} bagPage={bagPage} categoriesPage={categoriesPage} initialCategory={category} key={demoLocation} products={getCatalogue(demoMarketplace, demoLocation)}
+      return <Store customer={customer} bagPage={bagPage} categoriesPage={categoriesPage} productId={productId} initialCategory={category} key={demoLocation} products={getCatalogue(demoMarketplace, demoLocation)}
         locations={demoMarketplace.locations} locationId={demoLocation} checkoutAvailable={false} demoFallback />;
     }
-    return <Store customer={customer} bagPage={bagPage} categoriesPage={categoriesPage} products={[]} locations={locations} locationId={current || (typeof location === 'string' ? location : '')} catalogueState="unavailable" />;
+    return <Store customer={customer} bagPage={bagPage} categoriesPage={categoriesPage} productId={productId} products={[]} locations={locations} locationId={current || (typeof location === 'string' ? location : '')} catalogueState="unavailable" />;
   }
 }
 
-export default async function CataloguePage({ searchParams, bagPage = false, categoriesPage = false }) {
+export default async function CataloguePage({ searchParams, bagPage = false, categoriesPage = false, productId }) {
   const { location } = await searchParams;
-  return <Suspense fallback={<Store bagPage={bagPage} categoriesPage={categoriesPage} products={[]} locations={[]} locationId={typeof location === 'string' ? location : ''} catalogueState="loading" />}>
-    <Catalogue bagPage={bagPage} categoriesPage={categoriesPage} searchParams={searchParams} />
+  return <Suspense fallback={<Store bagPage={bagPage} categoriesPage={categoriesPage} productId={productId} products={[]} locations={[]} locationId={typeof location === 'string' ? location : ''} catalogueState="loading" />}>
+    <Catalogue bagPage={bagPage} categoriesPage={categoriesPage} productId={productId} searchParams={searchParams} />
   </Suspense>;
 }
