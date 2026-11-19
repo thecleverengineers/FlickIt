@@ -1,5 +1,6 @@
 import { createServer } from 'node:http';
 import { createHash, timingSafeEqual } from 'node:crypto';
+import { customerAuth } from './customer-auth.js';
 import { OrderError, parseOrder, placeOrder } from './orders.js';
 import { sampleProducts } from './catalogue.js';
 import { client, database } from './database.js';
@@ -51,19 +52,24 @@ if (process.env.FLICKIT_REQUIRE_DATABASE === 'true') {
 createServer(async (request, response) => {
   const url = new URL(request.url, 'http://localhost');
   const path = url.pathname;
+  const auth = /^\/v1\/auth\/(request|verify|session|logout)$/.exec(path)?.[1];
   const adminOrders = path === '/v1/admin/orders';
   const admin = path === '/v1/admin/marketplace' || adminOrders;
   const order = path === '/v1/orders';
-  if (!admin && !order && !['/health', '/v1/products', '/v1/marketplace'].includes(path)) {
+  if (!auth && !admin && !order && !['/health', '/v1/products', '/v1/marketplace'].includes(path)) {
     return send(response, 404, { error: 'Not found' });
   }
   if (admin && !isAdmin(request)) return send(response, 401, { error: 'Unauthorized' });
-  const methods = adminOrders ? ['GET', 'PATCH'] : admin ? ['GET', 'PUT'] : order ? ['POST'] : ['GET'];
+  const methods = auth ? [auth === 'session' ? 'GET' : 'POST'] : adminOrders ? ['GET', 'PATCH'] : admin ? ['GET', 'PUT'] : order ? ['POST'] : ['GET'];
   if (!methods.includes(request.method)) {
     response.setHeader('Allow', methods.join(', '));
     return send(response, 405, { error: 'Method not allowed' });
   }
   try {
+    if (auth) {
+      const [status, body] = await customerAuth(auth, request, readBody);
+      return send(response, status, body);
+    }
     if (path === '/health') {
       if (database) await database.command({ ping: 1 });
       return send(response, 200, { status: 'ok', mode: database ? 'mongodb' : 'demo' });

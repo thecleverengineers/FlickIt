@@ -75,3 +75,15 @@ For the demo web deployment, set `FLICKIT_DEMO_CATALOGUE_FALLBACK=true`
 to show the shared sample catalogue when the API is unreachable. The UI
 labels the fallback and disables checkout. Remove this flag before going
 live with real inventory.
+
+## Customer mobile sign-in
+
+On the API service, configure a MongoDB connection, `FAST2SMS_API_KEY`,
+`FAST2SMS_OTP_TEMPLATE_ID` and a random `CUSTOMER_OTP_SECRET` of at least
+32 characters. Use an OTP template compatible with the Fast2SMS Send OTP
+endpoint. The optional `CUSTOMER_OTP_DAILY_LIMIT` caps daily send attempts
+and defaults to 100. Keep credentials in the API service environment.
+
+Create an `expiresAt` TTL index with `expireAfterSeconds: 0` on
+`customer_otp`, `customer_otp_budget` and `customer_sessions`. Requests
+and sessions enforce expiry even before the TTL index deletes documents.

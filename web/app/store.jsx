@@ -13,7 +13,7 @@ const lastOrderKey = 'flickit.last-order-items';
 const bagKey = 'flickit.shopping-bag';
 const price = paise => currency.format(paise / 100);
 
-export default function Store({ products, locations, locationId, checkoutAvailable, catalogueState, bagPage, demoFallback }) {
+export default function Store({ products, locations, locationId, checkoutAvailable, catalogueState, bagPage, demoFallback, customer }) {
   const [shortcut, setShortcut] = useState('home');
   useEffect(() => {
     function readShortcut() {
@@ -117,7 +117,7 @@ export default function Store({ products, locations, locationId, checkoutAvailab
   }
 
   return <div className="store">
-    <StoreHeader count={count} homeHref={homeHref} bagHref={bagHref} accountHref={accountHref} />
+    <StoreHeader customer={customer} count={count} homeHref={homeHref} bagHref={bagHref} accountHref={accountHref} />
     <main>
       {demoFallback && <p className="catalogue-status" role="status">
         Showing the demo catalogue while the service reconnects. Checkout is unavailable.
@@ -241,7 +241,7 @@ export default function Store({ products, locations, locationId, checkoutAvailab
                   setLastOrder(items);
                   try {
                     sessionStorage.setItem(lastOrderKey, JSON.stringify(items));
-                    sessionStorage.setItem('flickit.last-order-summary', JSON.stringify({
+                    if (customer) sessionStorage.setItem(`flickit.last-order-summary.${customer.id}`, JSON.stringify({
                       reference: order.reference, totalPaise: order.totalPaise,
                     }));
                   } catch {}

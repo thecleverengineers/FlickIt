@@ -14,28 +14,43 @@ function Detail({ title, children }) {
   </details>;
 }
 
-export default function Account({ homeHref, bagHref, customer = null }) {
+export default function Account({ homeHref, bagHref, loginHref, customer = null }) {
+  const customerOrderKey = customer ? `${orderKey}.${customer.id}` : null;
+  const birthdayKey = customer ? `flickit.birthday.${customer.id}` : null;
   const [preferences, setPreferences] = useState(defaults);
   const [order, setOrder] = useState(null);
   const [notice, setNotice] = useState('');
 
   useEffect(() => {
-    if (!customer) return;
     try {
       const saved = JSON.parse(localStorage.getItem(preferencesKey) || '{}');
-      setPreferences({ ...defaults, ...saved });
-      setOrder(JSON.parse(sessionStorage.getItem(orderKey) || 'null'));
+      setPreferences({ ...defaults, appearance: saved?.appearance || defaults.appearance,
+        showOffers: saved?.showOffers !== false, birthday: birthdayKey ? localStorage.getItem(birthdayKey) || "" : "" });
+      setOrder(customerOrderKey ? JSON.parse(sessionStorage.getItem(customerOrderKey) || 'null') : null);
     } catch {}
-  }, [customer]);
+  }, [birthdayKey, customerOrderKey]);
 
   function save(field, value) {
     const next = { ...preferences, [field]: value };
     setPreferences(next);
     try {
-      localStorage.setItem(preferencesKey, JSON.stringify(next));
+      if (field === 'birthday' && birthdayKey) localStorage.setItem(birthdayKey, value);
+      localStorage.setItem(preferencesKey, JSON.stringify({ appearance: next.appearance, showOffers: next.showOffers }));
       setNotice('Preference saved on this device.');
     } catch {
       setNotice('Your browser couldn’t save this preference.');
+    }
+  }
+
+  async function logout() {
+    try {
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+      });
+      if (!response.ok) throw new Error();
+      window.location.reload();
+    } catch {
+      setNotice('Could not sign out. Try again.');
     }
   }
 
@@ -58,7 +73,7 @@ export default function Account({ homeHref, bagHref, customer = null }) {
       <section className="account-hero">
         <span className="account-avatar"><Icon name={customer ? "profile" : "user"} /></span>
         <h1>Your account</h1>
-        <p>{customer ? customer.name : "Shopping as a guest"}</p>
+        <p>{customer ? `+91 ${customer.mobile}` : "Log in to view your complete profile"}</p>
       </section>
       {customer ? <>
       <section className="account-group">
@@ -109,7 +124,8 @@ export default function Account({ homeHref, bagHref, customer = null }) {
           <button type="button" onClick={() => {
             try {
               localStorage.removeItem(preferencesKey);
-              sessionStorage.removeItem(orderKey);
+              if (customerOrderKey) sessionStorage.removeItem(customerOrderKey);
+              if (birthdayKey) localStorage.removeItem(birthdayKey);
               sessionStorage.removeItem("flickit.last-order-items");
               setPreferences(defaults);
               setOrder(null);
@@ -120,12 +136,36 @@ export default function Account({ homeHref, bagHref, customer = null }) {
         <Detail title="Notification preferences"><p>Flickit does not send account notifications during the preview.</p></Detail>
         <Detail title="Beta programme"><p>Public beta enrolment is unavailable.</p></Detail>
       </section>
+      <section className="account-group">
+        <button type="button" className="account-row" onClick={logout}>Log out <span aria-hidden="true">›</span></button>
+      </section>
+      </> : <>
+        <a href={loginHref} className="account-continue">Continue</a>
+        <div className="account-shortcuts">
+          <a href={loginHref}><Icon name="bag" />Your orders</a>
+          <a href={loginHref}><Icon name="profile" />Flickit Money</a>
+          <a href="#account-help"><Icon name="user" />Need help?</a>
+        </div>
+        <section className="account-group">
+          <Detail title="Appearance">
+            <label>Account theme <select value={preferences.appearance}
+              onChange={event => save('appearance', event.target.value)}>
+              <option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option>
+            </select></label>
+          </Detail>
+        </section>
+        <section className="account-group"><h2>Your information</h2>
+          <a className="account-row" href={loginHref}>Address book <span aria-hidden="true">›</span></a>
+        </section>
+        <section className="account-group" id="account-help"><h2>Other information</h2>
+          <Detail title="Need help?"><p>For shopping and delivery options, visit <a href={bagHref}>your bag</a>.</p></Detail>
+          <button className="account-row" type="button" onClick={share}>Share Flickit <span aria-hidden="true">›</span></button>
+          <Detail title="About us"><p>Flickit is a grocery marketplace for browsing local delivery options.</p></Detail>
+          <Detail title="Sell on Flickit"><p>Public seller applications are closed during the preview.</p></Detail>
+          <Detail title="Manage beta programme"><p>Public beta enrolment is unavailable.</p></Detail>
+        </section>
+      </>}
       {notice && <p className="account-notice" role="status">{notice}</p>}
-      </> : <section className="account-group account-guest" aria-label="Guest access">
-        <h2>Sign in to view your profile</h2>
-        <p>Customer sign-in is currently unavailable.</p>
-        <a href={homeHref}>Continue shopping</a>
-      </section>}
     </main>
     <nav className="bottom-appbar" aria-label="Shopping shortcuts">
       <a href={homeHref}><span className="appbar-icon"><Icon name="home" /></span><span>Home</span></a>

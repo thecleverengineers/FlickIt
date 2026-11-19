@@ -39,3 +39,20 @@
 .account-guest h2 { padding: 0; }
 .account-guest p { color: var(--muted); }
 .account-guest a { font-weight: 650; color: var(--accent); }
+
+.account-page .account-continue {
+  display: block; padding: 13px; width: 100%; border: 1px solid var(--accent);
+  border-radius: 12px; text-align: center; background: var(--surface); color: var(--accent);
+  font-weight: 700; text-decoration: none;
+}
+.account-shortcuts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 12px 0; }
+.account-shortcuts a {
+  display: grid; justify-items: center; gap: 7px; padding: 12px 4px; border-radius: 14px;
+  border: 1px solid var(--line); background: var(--surface); text-align: center;
+  text-decoration: none; font-weight: 650; font-size: .85rem;
+}
+.account-shortcuts svg { color: var(--accent); }
+.otp-form { padding: 16px; display: grid; gap: 12px; }
+.otp-form label { display: grid; gap: 6px; }
+.otp-form input { width: 100%; }
+.otp-form button:disabled { opacity: .6; cursor: default; }

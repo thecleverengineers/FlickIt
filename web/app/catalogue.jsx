@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { demoMarketplace, getCatalogue } from '../../api/marketplace';
 import Store from './store';
+import { getCustomer } from './customer-session';
 
 async function getApi(path, signal, params) {
   const url = new URL(path, process.env.API_ORIGIN || 'http://localhost:4000');
@@ -16,6 +17,7 @@ async function Catalogue({ searchParams, bagPage }) {
   let locations = [];
   let current = '';
   const { location } = await searchParams;
+  const customer = await getCustomer();
   try {
     const marketplaceRequest = getApi('/v1/marketplace', signal);
     let products;
@@ -32,15 +34,15 @@ async function Catalogue({ searchParams, bagPage }) {
       ]);
       locations = marketplace.locations;
     }
-    return <Store bagPage={bagPage} key={current} products={products} locations={locations}
+    return <Store customer={customer} bagPage={bagPage} key={current} products={products} locations={locations}
       locationId={current} checkoutAvailable={marketplace.checkoutAvailable} />;
   } catch {
     if (allowDemoFallback) {
       const demoLocation = demoMarketplace.locations.find(area => area.id === location)?.id || '';
-      return <Store bagPage={bagPage} key={demoLocation} products={getCatalogue(demoMarketplace, demoLocation)}
+      return <Store customer={customer} bagPage={bagPage} key={demoLocation} products={getCatalogue(demoMarketplace, demoLocation)}
         locations={demoMarketplace.locations} locationId={demoLocation} checkoutAvailable={false} demoFallback />;
     }
-    return <Store bagPage={bagPage} products={[]} locations={locations} locationId={current || (typeof location === 'string' ? location : '')} catalogueState="unavailable" />;
+    return <Store customer={customer} bagPage={bagPage} products={[]} locations={locations} locationId={current || (typeof location === 'string' ? location : '')} catalogueState="unavailable" />;
   }
 }
 
