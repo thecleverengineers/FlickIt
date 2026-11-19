@@ -4,10 +4,12 @@ import { useEffect, useRef, useState } from 'react';
 import Checkout from './checkout';
 import StoreHeader, { Icon } from './store-header';
 import CatalogueStatus from './catalogue-status';
+import VoiceSearch from './voice-search';
 
 const currency = new Intl.NumberFormat('en-IN', { currency: 'INR', style: 'currency' });
 const icons = { Produce: '🥬', Dairy: '🥛', Pantry: '🌾' };
 const productIcons = { banana: '🍌', tomato: '🍅', milk: '🥛', curd: '🥣', rice: '🍚', dal: '🫘' };
+const lastOrderKey = 'flickit.last-order-items';
 const bagKey = 'flickit.shopping-bag';
 const price = paise => currency.format(paise / 100);
 
@@ -34,6 +36,8 @@ export default function Store({ products, locations, locationId, checkoutAvailab
   const [brand, setBrand] = useState('');
   const [delivery, setDelivery] = useState('');
   const [bag, setBag] = useState({});
+  const [lastOrder, setLastOrder] = useState([]);
+  const [shoppingNotice, setShoppingNotice] = useState('');
   const [bagLoaded, setBagLoaded] = useState(false);
   useEffect(() => {
     try {
@@ -43,6 +47,12 @@ export default function Store({ products, locations, locationId, checkoutAvailab
     } catch {
       setBag({});
     }
+    try {
+      const items = JSON.parse(sessionStorage.getItem(lastOrderKey) || '[]');
+      if (Array.isArray(items)) setLastOrder(items.filter(item =>
+        typeof item?.id === 'string' && Number.isSafeInteger(item.quantity) &&
+        item.quantity > 0 && item.quantity <= 99));
+    } catch {}
     setBagLoaded(true);
   }, []);
   useEffect(() => {
@@ -50,6 +60,11 @@ export default function Store({ products, locations, locationId, checkoutAvailab
     try { sessionStorage.setItem(bagKey, JSON.stringify(bag)); } catch {}
   }, [bag, bagLoaded]);
   const categories = ['All', ...new Set(products.map(product => product.category))];
+  const area = locations.find(item => item.id === locationId);
+  const instantTimes = products.map(product => product.instantMinutes).filter(Number.isFinite);
+  const minimum = instantTimes.length ? Math.min(...instantTimes) : null;
+  const maximum = instantTimes.length ? Math.max(...instantTimes) : null;
+  const instantEstimate = minimum === null ? '' : minimum === maximum ? `${minimum} min` : `${minimum}–${maximum} min`;
   const brands = [...new Set(products.map(product => product.brand).filter(Boolean))];
   const visible = products.filter(product =>
     (category === 'All' || product.category === category) &&
@@ -73,9 +88,42 @@ export default function Store({ products, locations, locationId, checkoutAvailab
     });
   }
 
+  function browseCategory(next) {
+    setCategory(next);
+    setBrand('');
+    setDelivery('');
+    setQuery('');
+    window.location.hash = 'browse';
+    document.getElementById('browse')?.scrollIntoView();
+  }
+
+  function repeatOrder() {
+    const ids = new Set(products.map(product => product.id));
+    const eligible = lastOrder.filter(item => ids.has(item.id));
+    if (!eligible.length) {
+      setShoppingNotice('None of the items in your last order are available here.');
+      return;
+    }
+    setBag(current => {
+      const next = { ...current };
+      for (const { id, quantity } of eligible) next[id] = Math.min(99, (next[id] || 0) + quantity);
+      return next;
+    });
+    setShoppingNotice(eligible.length === lastOrder.length
+      ? 'Items from your last order were added to your bag.'
+      : 'Available items from your last order were added to your bag.');
+  }
+
   return <div className="store">
     <StoreHeader count={count} homeHref={homeHref} bagHref={bagHref} accountButton={accountButton} />
     <main>
+      {!bagPage && <section className="delivery-summary" aria-label="Delivery estimate">
+        <div><p>{area ? 'Delivering to' : 'Delivery location'}</p>
+          <strong>{area?.name || 'Choose your area'}</strong></div>
+        {instantEstimate && <div className="delivery-estimate"><strong>{instantEstimate}</strong><span>Instant delivery estimate</span></div>}
+        {area && !instantEstimate && products.some(product => product.shipping) &&
+          <div className="delivery-estimate"><span>Standard shipping available</span></div>}
+      </section>}
       {locations.length > 0 && <form className="location-form" action={bagPage ? "/bag" : "/"}>
         <label htmlFor="location">Delivery location</label>
         <select id="location" name="location" defaultValue={locationId}>
@@ -91,12 +139,44 @@ export default function Store({ products, locations, locationId, checkoutAvailab
         <span aria-hidden="true">⌕</span>
         <input type="search" aria-label="Search groceries" placeholder="Search groceries"
           disabled={Boolean(catalogueState)} value={query} onChange={event => setQuery(event.target.value)} />
+        <VoiceSearch disabled={Boolean(catalogueState)} onSearch={transcript => {
+          setCategory('All');
+          setBrand('');
+          setDelivery('');
+          setQuery(transcript);
+          window.location.hash = 'browse';
+        }} />
       </div>
+      {!catalogueState && <nav className="quick-categories" aria-label="Quick categories">
+        {categories.map(item => <button type="button" key={item} onClick={() => browseCategory(item)}>
+          <span aria-hidden="true">{icons[item] || '🛒'}</span>{item}
+        </button>)}
+      </nav>}
       <section className="hero">
         <div><p>Flickit Grocery</p><h1>Everyday groceries,<br />delivered.</h1>
           <a className="shop-action" href="#browse">Shop groceries</a></div>
         <div className="hero-visual" aria-hidden="true"><span>🥑</span><span>🛍️</span><span>🍊</span></div>
       </section>
+      {!catalogueState && categories.length > 1 && <section className="collections" aria-labelledby="collections-title">
+        <div className="row"><h2 id="collections-title">Shop essentials</h2>
+          {lastOrder.length > 0 && <button type="button" disabled={!bagLoaded} onClick={repeatOrder}>Order again</button>}
+        </div>
+        {shoppingNotice && <p role="status">{shoppingNotice} <a href={bagHref}>View bag</a></p>}
+        <div className="collection-grid">
+          {categories.slice(1).map(item => {
+            const collection = products.filter(product => product.category === item);
+            return <button type="button" className="collection-card" key={item} onClick={() => browseCategory(item)}>
+              <span className="collection-art" aria-hidden="true">
+                {collection.slice(0, 4).map(product => <span key={product.id}>
+                  {productIcons[product.id] || icons[item] || '🛒'}
+                </span>)}
+              </span>
+              <strong>{item}</strong>
+              <span>{collection.length} {collection.length === 1 ? 'item' : 'items'}</span>
+            </button>;
+          })}
+        </div>
+      </section>}
       <section id="browse" aria-labelledby="browse-title">
       <h2 id="browse-title">Shop by category</h2>
       {catalogueState ? <CatalogueStatus state={catalogueState} /> : <>
@@ -151,7 +231,13 @@ export default function Store({ products, locations, locationId, checkoutAvailab
           {unavailable.length > 0 ? <p>Remove unavailable items to check out.</p> : !checkoutAvailable ? <p>Checkout is currently unavailable.</p> : !locationId
             ? <p>Choose your delivery location to check out.</p>
             : <Checkout locationId={locationId} selected={selected} bag={bag} totalPaise={total}
-                onOrder={order => { setReceipt(order); setBag({}); }} />}
+                onOrder={order => {
+                  const items = order.items.map(({ id, quantity }) => ({ id, quantity }));
+                  setLastOrder(items);
+                  try { sessionStorage.setItem(lastOrderKey, JSON.stringify(items)); } catch {}
+                  setReceipt(order);
+                  setBag({});
+                }} />}
         </>}
       </section>}
     </main>

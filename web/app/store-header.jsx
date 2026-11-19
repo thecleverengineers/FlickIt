@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 
 const paths = {
+  mic: 'M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3ZM5 11v1a7 7 0 0 0 14 0v-1M12 19v3m-3 0h6',
   home: 'm3 11 9-8 9 8M5 10v11h5v-6h4v6h5V10',
   browse: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z',
   bag: 'M5 8h14l1 13H4L5 8Zm4 1V6a3 3 0 0 1 6 0v3',
