@@ -18,7 +18,7 @@ async function getOrderPhotos() {
 }
 
 export default async function AccountSection({ params, searchParams }) {
-  const { section } = await params;
+  const { section, reference } = await params;
   const title = [...publicSections, ...privateSections].find(label => sectionSlug(label) === section);
   if (!title) notFound();
   const { location } = await searchParams;
@@ -28,6 +28,9 @@ export default async function AccountSection({ params, searchParams }) {
   const [orders, orderPhotos] = section === 'your-orders'
     ? await Promise.all([getCustomerOrders(), getOrderPhotos()])
     : [null, {}];
+  const order = reference && orders?.find(({ receipt }) => receipt.reference === reference);
+  if (reference && orders !== null && !order) notFound();
   return <Account homeHref={`/${query}`} bagHref={`/bag${query}`}
-    loginHref={`/login${query}`} customer={customer} orders={orders} orderPhotos={orderPhotos} section={section} sectionTitle={title} />;
+    loginHref={`/login${query}`} customer={customer} orders={order ? [order] : orders} orderPhotos={orderPhotos} section={section} sectionTitle={reference ? 'Order details' : title}
+    orderDetails={Boolean(reference)} ordersHref={`/account/your-orders${query}`} />;
 }
