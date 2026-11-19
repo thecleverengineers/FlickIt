@@ -99,3 +99,17 @@
 .order-card-link:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
 .order-photo-strip { position: relative; z-index: 2; }
 .order-card .order-card-action { margin: 0; padding: 13px 16px; border-top: 1px solid var(--line); color: var(--accent); font-weight: 650; }
+
+.order-summary { display: grid; gap: 14px; }
+.order-summary-panel { padding: 18px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); }
+.order-summary-panel h2 { padding: 0 0 12px; font-size: 1.15rem; }
+.order-summary-panel .order-products { padding: 0; }
+.order-summary-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 18px; }
+.order-summary-tools button { color: var(--accent); font-weight: 650; }
+.order-bill, .order-facts { display: grid; gap: 12px; margin: 0; }
+.order-bill div { display: flex; justify-content: space-between; gap: 12px; }
+.order-bill div:last-child { border-top: 1px solid var(--line); padding-top: 12px; font-weight: 700; }
+.order-bill dd, .order-facts dd { margin: 0; overflow-wrap: anywhere; }
+.order-facts dt { margin-bottom: 4px; color: var(--muted); font-size: .88rem; }
+.order-repeat button, .order-repeat a { display: grid; text-align: center; width: 100%; padding: 12px; border-radius: 13px; background: #873621; color: white; text-decoration: none; font-weight: 700; }
+.order-repeat small { font-weight: 400; }
