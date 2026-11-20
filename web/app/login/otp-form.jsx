@@ -38,6 +38,26 @@ export default function Login({ accountHref, verification = false }) {
     return () => clearInterval(timer);
   }, [retryAt]);
 
+  const codeComplete = code.length === codeLength;
+
+  useEffect(() => {
+    if (!verification || !ready || !mobilePattern.test(mobile) || !retryAt || busy ||
+        codeComplete || !('OTPCredential' in window) || !navigator.credentials) return;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 120000);
+    navigator.credentials.get({ otp: { transport: ['sms'] }, signal: controller.signal })
+      .then(credential => {
+        if (!controller.signal.aborted && /^[0-9]{6}$/.test(credential?.code)) {
+          setCode(current => current.length === codeLength ? current : credential.code);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [verification, ready, mobile, retryAt, busy, codeComplete]);
+
   async function submit(action) {
     setBusy(true);
     setMessage('');
