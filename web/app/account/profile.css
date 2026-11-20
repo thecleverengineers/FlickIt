@@ -140,3 +140,15 @@
 @media (min-width: 700px) {
   .login-mosaic { max-width: 520px; margin-inline: auto; }
 }
+
+.otp-heading { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: white; border-bottom: 1px solid var(--line); }
+.otp-heading a { display: grid; place-items: center; width: 44px; height: 44px; color: var(--ink); border: 1px solid var(--line); border-radius: 50%; text-decoration: none; }
+.otp-heading h1 { margin: 0; font-size: 1.2rem; }
+.otp-verification-form { text-align: center; gap: 16px; }
+.otp-verification-form p { margin: 6px 0; }
+.otp-verification-form .otp-entry { position: relative; display: block; margin-block: 12px 4px; }
+.otp-entry input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: text; }
+.otp-cells { display: grid; grid-template-columns: repeat(6, minmax(0, 46px)); justify-content: center; gap: clamp(4px, 2vw, 10px); }
+.otp-cells span { display: grid; place-items: center; height: 48px; border-radius: 10px; background: #f1ebe7; font-size: 1.3rem; }
+.otp-entry:focus-within [data-active], .otp-entry:focus-within .otp-cells span:last-child:not(:empty) { outline: 2px solid var(--accent); outline-offset: -2px; }
+.otp-resend { justify-self: center; border: 0; background: transparent; color: var(--accent); }
