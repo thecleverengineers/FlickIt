@@ -5,6 +5,7 @@ import Checkout from './checkout';
 import StoreHeader, { Icon } from './store-header';
 import CatalogueStatus from './catalogue-status';
 import CategoryDirectory from './category-directory';
+import ProductDetail from './product-detail';
 import CategoryIcon from './category-icon';
 import VoiceSearch from './voice-search';
 
@@ -124,8 +125,8 @@ export default function Store({ products, locations, locationId, checkoutAvailab
       : 'Available items from your last order were added to your bag.');
   }
 
-  return <div className={bagPage ? "store bag-store" : categoryDetail ? "store categories-store category-detail-store" : categoriesPage ? "store categories-store" : "store"}>
-    {bagPage ? <header className="checkout-bar">
+  return <div className={productDetail ? "store pdp-store" : bagPage ? "store bag-store" : categoryDetail ? "store categories-store category-detail-store" : categoriesPage ? "store categories-store" : "store"}>
+    {!productDetail && (bagPage ? <header className="checkout-bar">
       <a href={homeHref} aria-label="Back to shop">←</a>
       <strong>Checkout</strong>
       <a href={`${homeHref}#browse`} aria-label="Browse products"><Icon name="browse" /></a>
@@ -135,7 +136,7 @@ export default function Store({ products, locations, locationId, checkoutAvailab
       <a href={categoriesHref} aria-label="Back to categories">←</a>
       <div><strong>{category}</strong><small>{area ? `Delivering to ${area.name}` : 'Browse available products'}</small></div>
       <a href="#category-search" aria-label="Search this category">⌕</a>
-    </header> : <StoreHeader customer={customer} count={count} homeHref={homeHref} bagHref={bagHref} accountHref={accountHref} />}
+    </header> : <StoreHeader customer={customer} count={count} homeHref={homeHref} bagHref={bagHref} accountHref={accountHref} />)}
     <main>
       {demoFallback && <p className="catalogue-status" role="status">
         Showing the demo catalogue while the service reconnects. Checkout is unavailable.
@@ -265,24 +266,10 @@ export default function Store({ products, locations, locationId, checkoutAvailab
       </div>
       </section>}
       </>}
-      {productId && (catalogueState ? <CatalogueStatus state={catalogueState} /> : productDetail ? <article className="product-detail-page">
-        <a href={categoryHref(productDetail.category)}>← {productDetail.category}</a>
-        {productDetail.imageUrl && <img src={productDetail.imageUrl} alt={productDetail.name} referrerPolicy="no-referrer" />}
-        <div className="product-detail-copy">
-          <h1>{productDetail.name}</h1>
-          <p>{[productDetail.brand, productDetail.pack, productDetail.variety !== productDetail.pack && productDetail.variety].filter(Boolean).join(' · ')}</p>
-          <strong>{price(productDetail.pricePaise)}</strong>
-          {productDetail.description && <p className="product-detail-description">{productDetail.description}</p>}
-          {productDetail.seller && <p>Sold by {productDetail.seller}</p>}
-          {productDetail.instantMinutes != null && <p>Estimated delivery {productDetail.instantMinutes} min</p>}
-          {productDetail.shipping && <p>Standard shipping available</p>}
-          {productDetail.preview ? <p>Preview only</p> : <div className="row">
-            <button className="add-product" type="button" disabled={!bagLoaded || (bag[productId] ?? 0) >= 99}
-              onClick={() => change(productId, 1)}>Add to bag</button>
-            {bag[productId] > 0 && <a href={bagHref}>View bag ({bag[productId]})</a>}
-          </div>}
-        </div>
-      </article> : <p>This product is unavailable.</p>)}
+      {productId && (catalogueState ? <CatalogueStatus state={catalogueState} /> : productDetail ? <ProductDetail product={productDetail}
+        related={products.filter(item => item.id !== productId && item.category === productDetail.category).slice(0, 6)}
+        categoryUrl={categoryHref(productDetail.category)} searchUrl={`${homeHref}#category-search`}
+        bagHref={bagHref} productHref={productHref} bag={bag} count={count} bagLoaded={bagLoaded} change={change} price={price} /> : <p>This product is unavailable.</p>)}
       {bagPage && <section className="bag-page" aria-labelledby="bag-title">
         <header className="bag-heading">
           <a className="bag-back" href={`${homeHref}#browse`}>← Continue shopping</a>
@@ -372,7 +359,7 @@ export default function Store({ products, locations, locationId, checkoutAvailab
     {categoriesPage && count > 0 && <a className="category-view-bag" href={bagHref}>
       <Icon name="bag" /><span><strong>View bag</strong><small>{count} {count === 1 ? 'item' : 'items'}</small></span><span aria-hidden="true">›</span>
     </a>}
-    {!bagPage && <nav className="bottom-appbar" aria-label="Shopping shortcuts">
+    {!bagPage && !productDetail && <nav className="bottom-appbar" aria-label="Shopping shortcuts">
       {[['home', 'Home', homeHref], ['bag', 'Bag', bagHref], ['browse', 'Categories', categoriesHref]]
         .map(([id, label, href]) =>
           <a href={href} key={id} aria-current={(categoriesPage ? 'browse' : 'home') === id ? 'location' : undefined}
