@@ -7,5 +7,5 @@ export const privateSections = [
   'Birthday', 'Your orders', 'Content preferences', 'Delivery area', 'Address book',
   'Your wishlist', 'Bookmarked recipes', 'GST details', 'E-gift cards', 'Your prescriptions',
   'Payment settings', 'Flickit Money', 'Claim gift card', 'Collected rewards',
-  'Community impact', 'Donation receipts', 'Account privacy', 'Notification preferences', 'Log out',
+  'Community impact', 'Donation receipts', 'Account privacy', 'Notification preferences',
 ];
