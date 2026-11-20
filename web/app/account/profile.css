@@ -113,3 +113,30 @@
 .order-facts dt { margin-bottom: 4px; color: var(--muted); font-size: .88rem; }
 .order-repeat button, .order-repeat a { display: grid; text-align: center; width: 100%; padding: 12px; border-radius: 13px; background: #873621; color: white; text-decoration: none; font-weight: 700; }
 .order-repeat small { font-weight: 400; }
+
+.login-page { background: #fffdfa; min-height: 100dvh; }
+.store.login-page main { max-width: 720px; padding: 0 0 28px; }
+.login-visual { position: relative; overflow: hidden; }
+.login-mosaic { display: grid; gap: 10px; padding-block: 10px 4px; }
+.login-mosaic-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; width: 110%; margin-left: -2%; }
+.login-mosaic-row:nth-child(even) { margin-left: -8%; }
+.login-tile { position: relative; display: grid; place-items: center; aspect-ratio: 1.08; border-radius: 22%; background: #e8f3ef; overflow: hidden; }
+.login-tile img { position: absolute; inset: 6%; width: 88%; height: 88%; object-fit: contain; background: #e8f3ef; border-radius: 16%; }
+.login-back { position: absolute; top: 18px; left: 16px; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: #fffdfa; color: var(--ink); text-decoration: none; box-shadow: 0 2px 10px #35233122; }
+.login-content { width: min(100%, 440px); margin: 0 auto; padding: 18px 16px 0; text-align: center; }
+.login-logo { display: block; height: auto; margin: 0 auto 10px; }
+.login-content h1 { font-size: clamp(1.6rem, 5vw, 2rem); margin: 0; }
+.login-content > p { margin: 8px 0 15px; color: var(--muted); }
+.login-form { padding: 0; text-align: left; }
+.login-phone { display: grid; grid-template-columns: 51px minmax(0, 1fr); gap: 10px; }
+.login-flag, .login-phone label { min-height: 52px; border: 1px solid var(--line); border-radius: 13px; background: white; }
+.login-flag { display: grid; place-items: center; font-size: 1.45rem; }
+.login-phone label { display: flex; align-items: center; gap: 8px; padding-inline: 11px; font-weight: 700; }
+.login-phone input { padding-inline: 0; min-width: 0; border: none; background: transparent; }
+.login-phone label:focus-within { outline: 2px solid var(--accent); outline-offset: -2px; }
+.login-phone input:focus-visible { outline: none; }
+.login-page .login-form .account-continue { min-height: 52px; background: #873621; border-color: transparent; color: white; }
+.login-page .login-form .account-continue:disabled { background: #e2d8d4; color: #584b49; opacity: 1; }
+@media (min-width: 700px) {
+  .login-mosaic { max-width: 520px; margin-inline: auto; }
+}
