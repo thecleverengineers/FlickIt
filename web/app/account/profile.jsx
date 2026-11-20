@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import OrderSummary from './order-summary';
 import { sectionSlug } from './sections';
 import { Icon } from '../store-header';
@@ -22,6 +22,9 @@ export default function Account({ homeHref, bagHref, loginHref, customer = null,
   const birthdayKey = customer ? `flickit.birthday.${customer.id}` : null;
   const [preferences, setPreferences] = useState(defaults);
   const [notice, setNotice] = useState('');
+  const logoutDialog = useRef(null);
+  const [signingOut, setSigningOut] = useState(false);
+  const [logoutError, setLogoutError] = useState('');
   const addressKey = customer ? `flickit.addresses.${customer.id}` : null;
   const [addresses, setAddresses] = useState([]);
 
@@ -65,6 +68,9 @@ export default function Account({ homeHref, bagHref, loginHref, customer = null,
   }
 
   async function logout() {
+    if (signingOut) return;
+    setSigningOut(true);
+    setLogoutError('');
     try {
       const response = await fetch('/api/auth/logout', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
@@ -72,7 +78,8 @@ export default function Account({ homeHref, bagHref, loginHref, customer = null,
       if (!response.ok) throw new Error();
       window.location.assign(accountHref);
     } catch {
-      setNotice('Could not sign out. Try again.');
+      setLogoutError('Could not sign out. Try again.');
+      setSigningOut(false);
     }
   }
 
@@ -195,9 +202,21 @@ export default function Account({ homeHref, bagHref, loginHref, customer = null,
         {detail('Notification preferences', <><p>Flickit does not send account notifications during the preview.</p></>)}
         {detail('Beta programme', <><p>Public beta enrolment is unavailable.</p></>)}
       </section>
-      <section className="account-group">
-        {detail('Log out', <button type="button" onClick={logout}>Confirm log out</button>)}
-      </section>
+      {!section && <section className="account-group">
+        <button type="button" className="account-row" aria-haspopup="dialog" onClick={() => {
+          setLogoutError('');
+          logoutDialog.current.showModal();
+        }}>Log out <span aria-hidden="true">›</span></button>
+        <dialog ref={logoutDialog} className="logout-dialog" aria-labelledby="logout-title"
+          onCancel={event => { if (signingOut) event.preventDefault(); }}>
+          <h2 id="logout-title">Log out?</h2>
+          {logoutError && <p role="alert">{logoutError}</p>}
+          <div className="logout-actions">
+            <button type="button" autoFocus disabled={signingOut} onClick={() => logoutDialog.current.close()}>Cancel</button>
+            <button type="button" disabled={signingOut} onClick={logout}>{signingOut ? 'Logging out…' : 'Log out'}</button>
+          </div>
+        </dialog>
+      </section>}
       </> : <>
         {!section && <a href={loginHref} className="account-continue">Continue</a>}
         <div className="account-shortcuts">
